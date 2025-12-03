@@ -1,0 +1,51 @@
+[build-system]
+requires = [
+    "setuptools<69",   # ensures Metadata-Version <= 2.2
+    "wheel<0.41"
+]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "micro_users"
+version = "1.0.0"
+description = "Django user management app with abstract user, permissions, and activity logging"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "DeBeski", email = "debeski1@gmail.com" }
+]
+keywords = ["django", "users", "permissions", "authentication"]
+
+# Dependencies
+dependencies = [
+    "Django>=5.17",
+    "django-crispy-forms>=2.4",
+    "django-tables2>=2.7.5",
+    "django-filter>=25.1",
+    "pillow>=11.0",
+    "babel>=2.1",
+]
+
+# Classifiers
+classifiers = [
+    "Framework :: Django",
+    "Framework :: Django :: 5",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+# Tell setuptools which packages to include
+[tool.setuptools.packages.find]
+include = ["users"]
+
+# Include static/templates files (equivalent to include_package_data=True)
+[tool.setuptools]
+include-package-data = true
