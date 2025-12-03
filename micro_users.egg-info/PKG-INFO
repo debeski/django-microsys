@@ -1,3 +1,32 @@
+Metadata-Version: 2.1
+Name: micro-users
+Version: 1.0.2
+Summary: Arabic Django user management app with abstract user, permissions, and activity logging
+Home-page: https://github.com/debeski/micro-users
+Author: DeBeski
+Author-email: DeBeski <debeski1@gmail.com>
+License: MIT
+Keywords: django,users,permissions,authentication
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 5
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: Django>=5.17
+Requires-Dist: django-crispy-forms>=2.4
+Requires-Dist: django-tables2>=2.7.5
+Requires-Dist: django-filter>=25.1
+Requires-Dist: pillow>=11.0
+Requires-Dist: babel>=2.1
+
 # Micro Users - Arabic Django User Management App
 
 [![PyPI version](https://badge.fury.io/py/micro-users.svg)](https://pypi.org/project/micro-users/)

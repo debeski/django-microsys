@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools<69",   # ensures Metadata-Version <= 2.2
+    "setuptools<69",
     "wheel<0.41"
 ]
 build-backend = "setuptools.build_meta"
@@ -8,8 +8,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "micro_users"
-version = "1.0.1"
-description = "Django user management app with abstract user, permissions, and activity logging"
+version = "1.0.2"
+description = "Arabic Django user management app with abstract user, permissions, and activity logging"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

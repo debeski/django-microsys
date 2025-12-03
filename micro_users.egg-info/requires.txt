@@ -1,0 +1,6 @@
+Django>=5.17
+django-crispy-forms>=2.4
+django-tables2>=2.7.5
+django-filter>=25.1
+pillow>=11.0
+babel>=2.1
