@@ -78,6 +78,7 @@ users/
 ## Version History
 
 | Version  | Changes |
+|----------|---------|
 | v1.0.0   | Initial release as pip package |
 | v1.0.1   | Fixed a couple of new issues as a pip package |
 | v1.0.2   | Fixed the readme and building files |
@@ -86,4 +87,3 @@ users/
 | v1.1.0   | OK, finally a working seamless micro-users app |
 | v1.1.1   | Fixed a bug where a staff member can edit the admin details |
 | v1.2.0   | Added User Details view with specific user activity log |
-| v
