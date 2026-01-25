@@ -28,7 +28,7 @@
 
 ```bash
 pip install git+https://github.com/debeski/micro-users.git
-# OR local
+# OR
 pip install micro-users
 ```
 
