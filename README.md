@@ -23,6 +23,7 @@
 - Admin interface integration
 - CRUD views and templates
 - Filtering and tabulation
+> *Future updates are planned to support dynamic language switching between RTL and LTR.*
 
 ## Installation
 
