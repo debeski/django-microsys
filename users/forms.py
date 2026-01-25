@@ -12,14 +12,115 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
+
+from django.forms.widgets import ChoiceWidget
+
 User = get_user_model()
+
+class GroupedPermissionWidget(ChoiceWidget):
+    template_name = 'users/widgets/grouped_permissions.html'
+    allow_multiple_selected = True
+
+    def value_from_datadict(self, data, files, name):
+        if hasattr(data, 'getlist'):
+            return data.getlist(name)
+        return data.get(name)
+
+    def get_context(self, name, value, attrs):
+        from django.apps import apps
+        context = super().get_context(name, value, attrs)
+        
+        # Get current selected values (as strings/ints)
+        if value is None:
+            value = []
+        str_values = set(str(v) for v in value)
+        
+        # Access the queryset directly
+        qs = None
+        if hasattr(self.choices, 'queryset'):
+            qs = self.choices.queryset.select_related('content_type').order_by('content_type__app_label', 'codename')
+        else:
+             choices = list(self.choices)
+             choice_ids = [c[0] for c in choices if c[0]]
+             qs = Permissions.objects.filter(id__in=choice_ids).select_related('content_type').order_by('content_type__app_label', 'codename')
+
+        grouped_perms = {}
+        
+        for perm in qs:
+            app_label = perm.content_type.app_label
+            
+            # Fetch verbose app name
+            try:
+                app_config = apps.get_app_config(app_label)
+                app_verbose_name = app_config.verbose_name
+            except LookupError:
+                app_verbose_name = app_label.title()
+
+            # Determine action
+            action = 'other'
+            codename = perm.codename
+            if codename.startswith('view_'): action = 'view'
+            elif codename.startswith('add_'): action = 'add'
+            elif codename.startswith('change_'): action = 'change'
+            elif codename.startswith('delete_'): action = 'delete'
+            
+            # Build option dict
+            current_id = attrs.get('id', 'id_permissions') if attrs else 'id_permissions'
+
+            option = {
+                'name': name,
+                'value': perm.pk,
+                'label': str(perm), # Force string conversion to use custom __str__ method
+                'selected': str(perm.pk) in str_values,
+                'attrs': {
+                    'id': f"{current_id}_{perm.pk}",
+                    'data_action': action  # Critical for JS global select
+                }
+            }
+            
+            if app_label not in grouped_perms:
+                grouped_perms[app_label] = {
+                    'name': app_verbose_name,
+                    'actions': {}
+                }
+            
+            grouped_perms[app_label]['actions'].setdefault(action, []).append(option)
+        
+        # Sort actions within each app: View -> Add -> Change -> Delete -> Other
+        action_order = {'view': 1, 'add': 2, 'change': 3, 'delete': 4, 'other': 5}
+        for app_label, app_data in grouped_perms.items():
+            app_data['actions'] = dict(sorted(
+                app_data['actions'].items(),
+                key=lambda item: action_order.get(item[0], 99)
+            ))
+            
+        context['widget']['grouped_perms'] = grouped_perms
+        return context
+
+    def render(self, name, value, attrs=None, renderer=None):
+        from django.template.loader import render_to_string
+        from django.utils.safestring import mark_safe
+        
+        context = self.get_context(name, value, attrs)
+        return mark_safe(render_to_string(self.template_name, context))
+
 
 # Custom User Creation form layout
 class CustomUserCreationForm(UserCreationForm):
     permissions = forms.ModelMultipleChoiceField(
-        queryset=Permissions.objects.all(),
+        queryset=Permissions.objects.exclude(
+            Q(codename__regex=r'^(delete_)') |
+            Q(content_type__app_label__in=[
+                'admin',
+                'auth',
+                'contenttypes',
+                'sessions',
+                'django_celery_beat',
+                'users'
+            ])
+        ),
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=GroupedPermissionWidget,
         label="الصلاحيات"
     )
 
@@ -47,36 +148,6 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields["password1"].help_text = "كلمة المرور يجب ألا تكون مشابهة لمعلوماتك الشخصية، وأن تحتوي على 8 أحرف على الأقل، وألا تكون شائعة أو رقمية بالكامل.."
         self.fields["password2"].help_text = "أدخل نفس كلمة المرور السابقة للتحقق."
 
-        # Split permissions queryset into two parts for 2 columns
-        permissions_list = list(Permissions.objects.exclude(
-            Q(codename__regex=r'^(delete_)') |
-            Q(content_type__app_label__in=[
-                'admin',
-                'auth',
-                'contenttypes',
-                'sessions',
-                'django_celery_beat',
-                'users'
-            ])
-        ))
-        mid_point = len(permissions_list) // 2
-        permissions_right = permissions_list[:mid_point]
-        permissions_left = permissions_list[mid_point:]
-
-        # Create two fields with only one column of permissions each
-        self.fields["permissions_right"] = forms.ModelMultipleChoiceField(
-            queryset=Permissions.objects.filter(id__in=[p.id for p in permissions_right]),
-            required=False,
-            widget=forms.CheckboxSelectMultiple,
-            label="الصلاحيـــات"
-        )
-        self.fields["permissions_left"] = forms.ModelMultipleChoiceField(
-            queryset=Permissions.objects.filter(id__in=[p.id for p in permissions_left]),
-            required=False,
-            widget=forms.CheckboxSelectMultiple,
-            label=""
-        )
-
         # Use Crispy Forms Layout helper
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -96,11 +167,7 @@ class CustomUserCreationForm(UserCreationForm):
                 css_class="row"
             ),
             HTML("<hr>"),
-            Div(
-                Div(Field("permissions_right", css_class="col-md-6"), css_class="col-md-6"),
-                Div(Field("permissions_left", css_class="col-md-6"), css_class="col-md-6"),
-                css_class="row"
-            ),
+            Field("permissions", css_class="col-12"),
             "is_staff",
             "is_active",
             FormActions(
@@ -126,17 +193,27 @@ class CustomUserCreationForm(UserCreationForm):
         user = super().save(commit=False)
         if commit:
             user.save()
-        # Manually set permissions from both fields
-        user.user_permissions.set(self.cleaned_data["permissions_left"] | self.cleaned_data["permissions_right"])
+        # Manually set permissions
+        user.user_permissions.set(self.cleaned_data["permissions"])
         return user
 
 
 # Custom User Editing form layout
 class CustomUserChangeForm(UserChangeForm):
     permissions = forms.ModelMultipleChoiceField(
-        queryset=Permissions.objects.all(),
+        queryset=Permissions.objects.exclude(
+            Q(codename__regex=r'^(delete_)') |
+            Q(content_type__app_label__in=[
+                'admin',
+                'auth',
+                'contenttypes',
+                'sessions',
+                'django_celery_beat',
+                'users'
+            ])
+        ),
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=GroupedPermissionWidget,
         label="الصلاحيات"
     )
 
@@ -162,48 +239,8 @@ class CustomUserChangeForm(UserChangeForm):
         self.fields["is_staff"].help_text = "يحدد ما إذا كان بإمكان المستخدم الوصول إلى قسم ادارة المستخدمين."
         self.fields["is_active"].help_text = "يحدد ما إذا كان يجب اعتبار هذا الحساب نشطًا. قم بإلغاء تحديد هذا الخيار بدلاً من الحذف."
         
-        # Split permissions queryset into two parts for 2 columns
-        permissions_list = list(Permissions.objects.exclude(
-            Q(codename__regex=r'^(delete_)') |
-            Q(content_type__app_label__in=[
-                'admin',
-                'auth',
-                'contenttypes',
-                'sessions',
-                'django_celery_beat',
-                'users'
-            ])
-        ))
-        mid_point = len(permissions_list) // 2
-        self.permissions_right = permissions_list[:mid_point]
-        self.permissions_left = permissions_list[mid_point:]
-
-        # Get user's current permissions
         if user:
-            user_permissions = set(user.user_permissions.all())
-
-            # Set initial values based on user's existing permissions
-            initial_right = [p.id for p in self.permissions_right if p in user_permissions]
-            initial_left = [p.id for p in self.permissions_left if p in user_permissions]
-        else:
-            initial_right = []
-            initial_left = []
-
-        # Create two fields with only one column of permissions each
-        self.fields["permissions_right"] = forms.ModelMultipleChoiceField(
-            queryset=Permissions.objects.filter(id__in=[p.id for p in self.permissions_right]),
-            required=False,
-            widget=forms.CheckboxSelectMultiple,
-            label="الصلاحيـــات",
-            initial=initial_right
-        )
-        self.fields["permissions_left"] = forms.ModelMultipleChoiceField(
-            queryset=Permissions.objects.filter(id__in=[p.id for p in self.permissions_left]),
-            required=False,
-            widget=forms.CheckboxSelectMultiple,
-            label="",
-            initial=initial_left
-        )
+            self.fields["permissions"].initial = user.user_permissions.all()
 
         # Use Crispy Forms Layout helper
         self.helper = FormHelper()
@@ -223,11 +260,7 @@ class CustomUserChangeForm(UserChangeForm):
                 css_class="row"
             ),
             HTML("<hr>"),
-            Div(
-                Div(Field("permissions_right", css_class="col-md-6"), css_class="col-md-6"),
-                Div(Field("permissions_left", css_class="col-md-6"), css_class="col-md-6"),
-                css_class="row"
-            ),
+            Field("permissions", css_class="col-12"),
             "is_staff",
             "is_active",
             FormActions(
@@ -261,8 +294,8 @@ class CustomUserChangeForm(UserChangeForm):
         user = super().save(commit=False)
         if commit:
             user.save()
-        # Manually set permissions from both fields
-        user.user_permissions.set(self.cleaned_data["permissions_left"] | self.cleaned_data["permissions_right"])
+        # Manually set permissions
+        user.user_permissions.set(self.cleaned_data["permissions"])
         return user
 
 

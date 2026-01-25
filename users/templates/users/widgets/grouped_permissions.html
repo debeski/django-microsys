@@ -1,0 +1,210 @@
+{% with id=widget.attrs.id %}
+<div class="grouped-permissions-widget" id="{{ id }}_container">
+    
+    <!-- Top Bar: Global Controls -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input global-select" type="checkbox" id="{{ id }}_global_view" data-action-target="view">
+                <label class="form-check-label fw-bold" for="{{ id }}_global_view">عرض الكل</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input global-select" type="checkbox" id="{{ id }}_global_add" data-action-target="add">
+                <label class="form-check-label fw-bold" for="{{ id }}_global_add">إضافة الكل</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input global-select" type="checkbox" id="{{ id }}_global_change" data-action-target="change">
+                <label class="form-check-label fw-bold" for="{{ id }}_global_change">تعديل الكل</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input global-select" type="checkbox" id="{{ id }}_global_other" data-action-target="other">
+                <label class="form-check-label fw-bold" for="{{ id }}_global_other">الـأخرى</label>
+            </div>
+            
+            <button type="button" class="btn btn-outline-primary ms-auto" data-bs-toggle="collapse" 
+                    data-bs-target="#{{ id }}_detailed_list" aria-expanded="false" aria-controls="{{ id }}_detailed_list">
+                <i class="bi bi-list-check"></i> إظهار كل الصلاحيات
+            </button>
+        </div>
+    </div>
+
+    <!-- Collapsible Detailed List -->
+    <div class="collapse" id="{{ id }}_detailed_list">
+        {% for app_label, app_data in widget.grouped_perms.items %}
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 text-capitalize">{{ app_data.name }}</h5>
+            </div>
+            <div class="card-body">
+                {% for action_name, options in app_data.actions.items %}
+                <div class="permission-group mb-2 pb-2 border-bottom">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input group-checkbox" 
+                                   id="{{ id }}_{{ app_label }}_{{ action_name }}_all"
+                                   data-group-target="{{ id }}_{{ app_label }}_{{ action_name }}_group">
+                            <label class="form-check-label fw-bold" for="{{ id }}_{{ app_label }}_{{ action_name }}_all">
+                            {% if action_name == 'view' %}
+                                عرض الكل ({{ options|length }})
+                            {% elif action_name == 'change' %}
+                                تعديل الكل ({{ options|length }})
+                            {% elif action_name == 'add' %}
+                                إضافة الكل ({{ options|length }})
+                            {% elif action_name == 'delete' %}
+                                حذف الكل ({{ options|length }})
+                            {% else %}
+                                {{ action_name|title }} الكل ({{ options|length }})
+                            {% endif %}
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="row row-cols-1 row-cols-md-2 g-2 ps-4 {{ id }}_{{ app_label }}_{{ action_name }}_group">
+                        {% for option in options %}
+                        <div class="col">
+                            <div class="form-check">
+                                <input type="checkbox" name="{{ option.name }}" value="{{ option.value }}" 
+                                       class="form-check-input permission-checkbox" 
+                                       id="{{ option.attrs.id }}"
+                                       data-action="{{ option.attrs.data_action }}"
+                                       {% if option.selected %}checked{% endif %}>
+                                <label class="form-check-label" for="{{ option.attrs.id }}">
+                                    {{ option.label }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('{{ id }}_container');
+    console.log('Grouped Permissions Widget Initialized');
+    
+    // --- Helper Functions ---
+
+    // Update a specific App-level Master checkbox (e.g. Users->View All)
+    function updateAppGroupMaster(groupContainer) {
+        if (!groupContainer) return;
+        
+        const parentGroupDiv = groupContainer.closest('.permission-group');
+        if (!parentGroupDiv) return;
+
+        const masterCb = parentGroupDiv.querySelector('.group-checkbox');
+        if (masterCb) {
+            const allChildren = groupContainer.querySelectorAll('.permission-checkbox');
+            const total = allChildren.length;
+            let checkedCount = 0;
+            for (let i = 0; i < total; i++) {
+                if (allChildren[i].checked) checkedCount++;
+            }
+
+            masterCb.checked = (total > 0 && checkedCount === total);
+            masterCb.indeterminate = (checkedCount > 0 && checkedCount < total);
+        }
+    }
+
+    // Update ALL App-level Masters (useful after a global bulk change)
+    function updateAllAppMasters() {
+        const allGroupContainers = container.querySelectorAll('div[class*="_group"]');
+        allGroupContainers.forEach(groupContainer => {
+            updateAppGroupMaster(groupContainer);
+        });
+    }
+
+    // Update Global Masters (Top Bar)
+    function updateGlobalMasters() {
+        const globalSelectors = container.querySelectorAll('.global-select');
+        globalSelectors.forEach(globalCb => {
+            const actionTarget = globalCb.getAttribute('data-action-target');
+            const allTargets = container.querySelectorAll(`.permission-checkbox[data-action="${actionTarget}"]`);
+            
+            if (allTargets.length > 0) {
+                 const total = allTargets.length;
+                 let checkedCount = 0;
+                 for (let i = 0; i < total; i++) {
+                     if (allTargets[i].checked) checkedCount++;
+                 }
+
+                 globalCb.checked = (checkedCount === total);
+                 globalCb.indeterminate = (checkedCount > 0 && checkedCount < total);
+            }
+        });
+    }
+
+    // --- Global Selectors (Top Bar) Logic ---
+    const globalSelectors = container.querySelectorAll('.global-select');
+    globalSelectors.forEach(globalCb => {
+        globalCb.addEventListener('change', function() {
+            try {
+                const actionTarget = this.getAttribute('data-action-target');
+                const isChecked = this.checked;
+                console.log('Global Click:', actionTarget, isChecked);
+                
+                // 1. Bulk update all target children directly (No event dispatch)
+                const targetCheckboxes = container.querySelectorAll(`.permission-checkbox[data-action="${actionTarget}"]`);
+                targetCheckboxes.forEach(cb => {
+                    cb.checked = isChecked;
+                });
+
+                // 2. Update all App-level masters to reflect the change
+                updateAllAppMasters();
+                
+            } catch (e) {
+                console.error('Error in Global Select:', e);
+            }
+        });
+    });
+
+    // --- Sub-Group Masters (App Level) Logic ---
+    const groupCheckboxes = container.querySelectorAll('.group-checkbox');
+    groupCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            try {
+                const isChecked = this.checked;
+                const permissionGroup = this.closest('.permission-group');
+                if (!permissionGroup) return;
+
+                const targetGroup = permissionGroup.querySelector('div[class*="_group"]');
+                if (targetGroup) {
+                    // 1. Bulk update children directly
+                    const childCheckboxes = targetGroup.querySelectorAll('.permission-checkbox');
+                    childCheckboxes.forEach(child => {
+                        child.checked = isChecked;
+                    });
+                    
+                    // 2. Update Global Masters since the counts changed
+                    updateGlobalMasters();
+                }
+            } catch (e) {
+                console.error('Error in SubGroup Select:', e);
+            }
+        });
+    });
+
+    // --- Individual Permission Logic ---
+    const permissionCheckboxes = container.querySelectorAll('.permission-checkbox');
+    permissionCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            // Update the specific App Group Master this belongs to
+            const groupContainer = this.closest('div[class*="_group"]');
+            updateAppGroupMaster(groupContainer);
+            
+            // Update Global Masters
+            updateGlobalMasters();
+        });
+    });
+
+    // --- Initial State Hydration ---
+    updateAllAppMasters();
+    updateGlobalMasters();
+});
+</script>
+{% endwith %}

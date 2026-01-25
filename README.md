@@ -16,9 +16,9 @@
 
 ## Features
 - Custom AbstractUser model
-- User permissions system  
+- Custom Grouped User permissions system *NEW*
 - Activity logging (login/logout, CRUD tracking)
-- Specific User detail and log view *new*
+- Specific User detail and log view
 - Localization support
 - Admin interface integration
 - CRUD views and templates
@@ -245,8 +245,10 @@ users/
 | v1.1.1   | • Fixed an expolit where a staff member could disable the ADMIN user |
 | v1.2.0   | • Added User Details view with specific user activity log |
 | v1.2.1   | • Fixed a minor import bug |
-| v1.2.3   | • Separated user detail view from table for consistency<br> • Optimized the new detail + log view for optimal compatibiliyy with users |
-| v1.2.4   | • Fixed a couple of visual inconsistencies |
+| v1.2.2   | • Separated user detail view from table for consistency<br> • Optimized the new detail + log view for optimal compatibiliyy with users |
+| v1.2.3   | • Fixed a couple of visual inconsistencies |
 | v1.3.0   | • Patched a critical security permission issue<br> • Disabled ADMIN from being viewed/edited from all other members<br> • Fixed a crash when sorting with full_name<br> • Enabled Logging for all actions |
 | v1.3.1   | • Corrected a misplaced code that caused a crash when editing profile |
 | v1.3.2   | • Minor table modifications |
+| v1.4.0   | • Redesigned Permissions UI (Grouped by App/Action) <br> • Added Global Bulk Permission Selectors <br> • Improved Arabic Localization for Permissions <br> • Optimized printing (hidden forms/buttons) <br> • Fixed various bugs and crashes |
+| v1.4.1   | • Changed "Administrative User" translation to "Responsible User" (مستخدم مسؤول) <br> • Enforced custom sorting order for Permissions (View -> Add -> Change -> Other) |

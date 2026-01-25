@@ -6,14 +6,11 @@
 
 {% block content %}
 
-    <form method="get" class="mb-3">
+    <form method="get" class="py-3 g-2 no-print">
         {% crispy filter.form %}
     </form>
 
     <div class="card border-light shadow">
-        <!-- <div class="card-header text-center pe-5 text-bg-warning">
-            <h3 class="card-title">إدارة المستخدمين</h3>
-        </div> -->
         <div class="card-body p-0 table-responsive-lg">
             <!-- Render the table -->
             {% render_table table %}
@@ -21,7 +18,7 @@
     </div>
 
     <div class="mt-3">
-        <a href="{% url 'create_user' %}" class="btn btn-secondary" title="إضافة مستخدم جديد">
+        <a href="{% url 'create_user' %}" class="btn btn-secondary no-print" title="إضافة مستخدم جديد">
             <i class="bi bi-person-plus-fill text-light me-1 h4"></i> إضافة مستخدم جديد
         </a>
     </div>
