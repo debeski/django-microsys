@@ -16,6 +16,8 @@
 
 ## Features
 - Custom AbstractUser model
+- Department Management System
+- Custom Grouped User permissions system *NEW*
 - Custom Grouped User permissions system *NEW*
 - Activity logging (login/logout, CRUD tracking)
 - Specific User detail and log view
@@ -213,6 +215,7 @@ All user management URLs are prefixed with `manage/` as configured. Below is the
 | `manage/profile/edit/` | `views.edit_profile` | Edit current profile |
 | `manage/logs/` | `views.UserActivityLogView.as_view()` | View activity logs |
 | `manage/reset_password/<int:pk>/` | `views.reset_password` | Reset user password |
+| `manage/departments/manage/` | `views.manage_departments` | Department Manager (Modal) |
 
 ## Structure
 ```
@@ -227,7 +230,7 @@ users/
 ├── apps.py         # Permissions Localization
 ├── admin.py        # Admin UI integration
 ├── __init__.py     # Python init
-├── templates/      # HTML templates
+├── templates/      # HTML templates (includes partials)
 ├── static/         # CSS classes
 └── migrations/     # Database migrations
 ```
@@ -252,3 +255,4 @@ users/
 | v1.3.2   | • Minor table modifications |
 | v1.4.0   | • Redesigned Permissions UI (Grouped by App/Action) <br> • Added Global Bulk Permission Selectors <br> • Improved Arabic Localization for Permissions <br> • Optimized printing (hidden forms/buttons) <br> • Fixed various bugs and crashes |
 | v1.4.1   | • Changed "Administrative User" translation to "Responsible User" (مستخدم مسؤول) <br> • Enforced custom sorting order for Permissions (View -> Add -> Change -> Other) |
+| v1.5.0   | • Department Management (Modal-based CRUD)<br> • Department field implementation<br> • Template refactoring (partials/, profile/, users/ for logs)<br> • Verbose names for models |

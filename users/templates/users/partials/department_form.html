@@ -1,0 +1,19 @@
+{% load crispy_forms_tags %}
+
+<div class="d-flex justify-content-between mb-3">
+    <h5 class="modal-title">{% if department_id %}تعديل قسم{% else %}إضافة قسم جديد{% endif %}</h5>
+    <button class="btn btn-secondary" onclick="loadDepartmentForm('{% url 'manage_departments' %}')">
+        <i class="bi bi-arrow-right me-1"></i> عودة للقائمة
+    </button>
+</div>
+
+<form id="departmentForm" onsubmit="submitDepartmentForm(event, '{% url 'save_department' %}{% if department_id %}/{{ department_id }}{% endif %}')">
+    {% csrf_token %}
+    {% crispy form %}
+    
+    <div class="mt-3 text-center">
+        <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-save me-1"></i> حفظ
+        </button>
+    </div>
+</form>

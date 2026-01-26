@@ -14,6 +14,7 @@ from django.db.models import Q
 
 
 from django.forms.widgets import ChoiceWidget
+from .models import Department
 
 User = get_user_model()
 
@@ -126,10 +127,15 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ["username", "email", "password1", "password2", "first_name", "last_name", "phone", "occupation", "is_staff", "permissions", "is_active"]
+        fields = ["username", "email", "password1", "password2", "first_name", "last_name", "phone", "department", "is_staff", "permissions", "is_active"]
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        if self.user and not self.user.is_superuser and self.user.department:
+            self.fields['department'].initial = self.user.department
+            self.fields['department'].disabled = True
         
         self.fields["username"].label = "اسم المستخدم"
         self.fields["email"].label = "البريد الإلكتروني"
@@ -163,7 +169,7 @@ class CustomUserCreationForm(UserCreationForm):
             ),
             Div(
                 Div(Field("phone", css_class="col-md-6"), css_class="col-md-6"),
-                Div(Field("occupation", css_class="col-md-6"), css_class="col-md-6"),
+                Div(Field("department", css_class="col-md-6"), css_class="col-md-6"),
                 css_class="row"
             ),
             HTML("<hr>"),
@@ -193,8 +199,8 @@ class CustomUserCreationForm(UserCreationForm):
         user = super().save(commit=False)
         if commit:
             user.save()
-        # Manually set permissions
-        user.user_permissions.set(self.cleaned_data["permissions"])
+            # Manually set permissions
+            user.user_permissions.set(self.cleaned_data["permissions"])
         return user
 
 
@@ -219,11 +225,15 @@ class CustomUserChangeForm(UserChangeForm):
 
     class Meta:
         model = User
-        fields = ["username", "email", "first_name", "last_name", "phone", "occupation", "is_staff",  "permissions", "is_active"]
+        fields = ["username", "email", "first_name", "last_name", "phone", "department", "is_staff",  "permissions", "is_active"]
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.get('instance')
+        self.user = kwargs.pop('user', None)
+        user_instance = kwargs.get('instance')
         super().__init__(*args, **kwargs)
+
+        if self.user and not self.user.is_superuser and self.user.department:
+            self.fields['department'].disabled = True
         
         # Labels
         self.fields["username"].label = "اسم المستخدم"
@@ -239,8 +249,8 @@ class CustomUserChangeForm(UserChangeForm):
         self.fields["is_staff"].help_text = "يحدد ما إذا كان بإمكان المستخدم الوصول إلى قسم ادارة المستخدمين."
         self.fields["is_active"].help_text = "يحدد ما إذا كان يجب اعتبار هذا الحساب نشطًا. قم بإلغاء تحديد هذا الخيار بدلاً من الحذف."
         
-        if user:
-            self.fields["permissions"].initial = user.user_permissions.all()
+        if user_instance:
+            self.fields["permissions"].initial = user_instance.user_permissions.all()
 
         # Use Crispy Forms Layout helper
         self.helper = FormHelper()
@@ -256,7 +266,7 @@ class CustomUserChangeForm(UserChangeForm):
             ),
             Div(
                 Div(Field("phone", css_class="col-md-6"), css_class="col-md-6"),
-                Div(Field("occupation", css_class="col-md-6"), css_class="col-md-6"),
+                Div(Field("department", css_class="col-md-6"), css_class="col-md-6"),
                 css_class="row"
             ),
             HTML("<hr>"),
@@ -294,8 +304,8 @@ class CustomUserChangeForm(UserChangeForm):
         user = super().save(commit=False)
         if commit:
             user.save()
-        # Manually set permissions
-        user.user_permissions.set(self.cleaned_data["permissions"])
+            # Manually set permissions
+            user.user_permissions.set(self.cleaned_data["permissions"])
         return user
 
 
@@ -329,7 +339,7 @@ class ResetPasswordForm(SetPasswordForm):
 class UserProfileEditForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'occupation', 'profile_picture']
+        fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'profile_picture']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -338,7 +348,6 @@ class UserProfileEditForm(forms.ModelForm):
         self.fields['first_name'].label = "الاسم الاول"
         self.fields['last_name'].label = "اللقب"
         self.fields['phone'].label = "رقم الهاتف"
-        self.fields['occupation'].label = "جهة العمل"
         self.fields['profile_picture'].label = "الصورة الشخصية"
 
     def clean_profile_picture(self):
@@ -370,3 +379,17 @@ class ArabicPasswordChangeForm(PasswordChangeForm):
         label=_('تأكيد كلمة المرور الجديدة'),
         widget=forms.PasswordInput(attrs={'autocomplete': 'new-password', 'dir': 'rtl'}),
     )
+
+class DepartmentForm(forms.ModelForm):
+    class Meta:
+        model = Department
+        fields = ['name']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].label = "اسم القسم"
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Field('name', css_class='col-12'),
+        )

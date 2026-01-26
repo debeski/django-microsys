@@ -16,4 +16,12 @@ urlpatterns = [
     path("logs/", views.UserActivityLogView.as_view(), name="user_activity_log"),
     path('reset_password/<int:pk>/', views.reset_password, name="reset_password"),
     path("users/<int:pk>/", views.UserDetailView.as_view(), name="user_detail"),
+    
+    # Department Management URLs
+    path("departments/manage/", views.manage_departments, name="manage_departments"),
+    path("departments/form/", views.get_department_form, name="get_department_form"),
+    path("departments/form/<int:pk>/", views.get_department_form, name="get_department_form"),
+    path("departments/save/", views.save_department, name="save_department"),
+    path("departments/save/<int:pk>/", views.save_department, name="save_department"),
+    path("departments/delete/<int:pk>/", views.delete_department, name="delete_department"),
 ]

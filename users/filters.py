@@ -39,7 +39,7 @@ class UserFilter(django_filters.FilterSet):
             Q(username__icontains=value) |
             Q(email__icontains=value) |
             Q(phone__icontains=value) |
-            Q(occupation__icontains=value) |
+            Q(department__name__icontains=value) |
             Q(first_name__icontains=value) |
             Q(last_name__icontains=value)
         )
@@ -98,8 +98,7 @@ class UserActivityLogFilter(django_filters.FilterSet):
         return queryset.filter(
             Q(user__username__icontains=value) |
             Q(user__email__icontains=value) |
-            Q(user__profile__phone__icontains=value) |
-            Q(user__profile__occupation__icontains=value) |
+            Q(user__phone__icontains=value) |
             Q(action__icontains=value) |
             Q(model_name__icontains=value) |
             Q(number__icontains=value) |

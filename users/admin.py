@@ -9,7 +9,7 @@ User = get_user_model()
 
 class CustomUserAdmin(UserAdmin):
     model = User
-    list_display = ['username', 'email', 'is_staff', 'is_active', 'phone', 'occupation']
+    list_display = ['username', 'email', 'is_staff', 'is_active', 'phone']
     list_filter = ['is_staff', 'is_active']
     search_fields = ['username', 'email']
     ordering = ['username']
