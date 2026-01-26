@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/micro-users.svg)](https://pypi.org/project/micro-users/)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/debeski/micro-users/main/users/static/img/login_logo.webp" alt="Micro Users Login Logo" width="600"/>
+  <img src="https://raw.githubusercontent.com/debeski/micro-users/main/users/static/img/login_logo.webp" alt="Micro Users Login Logo" width="450"/>
 </p>
 
 **Arabic** lightweight, reusable Django app providing user management with abstract user, permissions, localization, and activity logging.
