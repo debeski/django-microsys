@@ -20,7 +20,7 @@
 
 ## Features
 - Custom AbstractUser model
-- Scope Management System (replaces Department)
+- Scope Management System (Optional)
 - Custom Grouped User permissions system
 - Automatic Activity logging (login/logout, CRUD for all models)
 - Specific User detail and log view
@@ -175,3 +175,4 @@ MICRO_USERS_THEME = {
 | v1.5.0   | • Department Management (Modal-based CRUD)<br> • Department field implementation<br> • Template refactoring (partials/, profile/, users/ for logs)<br> • Verbose names for models |
 | v1.6.0   | • **Automated Activity Logging**: dynamic logging for all CREATE/UPDATE/DELETE actions via Middleware & Signals<br> • **Refactor**: Renamed `Department` model to `Scope` (Scope Management)<br> • Removed manual logging requirement<br> • **Architecture**: Decoupled models, forms, and tables using dynamic imports and `apps.get_model` <br> • **Soft Delete**: Users are now marked as inactive with a timestamp instead of being permanently deleted<br> • **Activity Log**: Deleted users appear with a strikethrough<br> • **CSS Refactor**: Extracted and cleaned up styling with CSS variables<br> • **Login**: Refactored login page with separated JS/CSS and a new modern default logo |
 | v1.6.1   | • **Theme Configuration**: Added `MICRO_USERS_THEME` setting for easy color customization <br> • **Bug Fixes**: Explicitly excluded unwanted columns (id, ip_address, user_agent) from Activity Log table <br> • **UI**: Improved Scope Manager button visibility |
+| v1.6.2   | • **UI**: Improved some tooltips for buttons and descriptions |
