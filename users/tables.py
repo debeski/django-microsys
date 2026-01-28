@@ -6,6 +6,7 @@ User = get_user_model()  # Use custom user model
 
 class UserTable(tables.Table):
     username = tables.Column(verbose_name="اسم المستخدم")
+    phone = tables.Column(verbose_name="رقم الهاتف")
     email = tables.Column(verbose_name="البريد الالكتروني")
     scope = tables.Column(verbose_name="النطاق", accessor='scope.name', default='-')
     full_name = tables.Column(
@@ -28,7 +29,7 @@ class UserTable(tables.Table):
     class Meta:
         model = User
         template_name = "django_tables2/bootstrap5.html"
-        fields = ("username", "email", "full_name", "phone", "scope", "is_staff", "is_active","last_login", "actions")
+        fields = ("username", "phone", "email", "full_name", "scope", "is_staff", "is_active","last_login", "actions")
         attrs = {'class': 'table table-hover align-middle'}
 
 class UserActivityLogTable(tables.Table):

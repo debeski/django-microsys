@@ -126,7 +126,8 @@ def edit_user(request, pk):
     
     # 🚫 Block staff users from editing superuser accounts
     if user.is_superuser and not request.user.is_superuser:
-        messages.error(request, "لا يمكن تعديل هذا الحساب!")
+        messages.error(request, "ليس لديك صلاحية لتعديل هذا الحساب!")
+        return redirect('manage_users')
 
 
     # Restrict to same scope
@@ -234,6 +235,11 @@ class UserDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 @user_passes_test(is_staff)
 def reset_password(request, pk):
     user = get_object_or_404(User, id=pk)
+
+    # 🚫 Block staff users from resetting superuser passwords
+    if user.is_superuser and not request.user.is_superuser:
+        messages.error(request, "ليس لديك صلاحية لتعديل هذا الحساب!")
+        return redirect('manage_users')
 
     # Restrict to same scope
     if not request.user.is_superuser:

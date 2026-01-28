@@ -28,6 +28,9 @@ class CustomUser(AbstractUser):
     class Meta:
         verbose_name = "مستخدم"
         verbose_name_plural = "المستخدمين"
+        permissions = [
+            ("manage_staff", "صلاحية إنشاء مسؤول"),
+        ]
 
 class UserActivityLog(models.Model):
     ACTION_TYPES = [

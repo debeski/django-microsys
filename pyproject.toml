@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "micro_users"
-version = "1.7.1"
+version = "1.8.1"
 description = "Arabic Django user management app with abstract user, permissions, and activity logging"
 readme = "README.md"
 requires-python = ">=3.11"

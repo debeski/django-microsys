@@ -1,0 +1,105 @@
+.permissions-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.permissions-card:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.permissions-card-header {
+    background: rgba(var(--primal-rgb, 13, 110, 253), 0.03);
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    transition: background 0.2s ease;
+}
+
+.permissions-card-header:hover {
+    background: rgba(var(--primal-rgb, 13, 110, 253), 0.1);
+}
+
+.bg-soft-primary {
+    background-color: rgba(var(--primal-rgb, 13, 110, 253), 0.1) !important;
+}
+
+.text-primary {
+    color: var(--primal_dark, #0d6efd) !important;
+}
+
+.permissions-card-header .app-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--primal_dark, #212529);
+}
+
+.permissions-card-body {
+    padding: 1.25rem;
+}
+
+.model-group {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.model-group:last-child {
+    margin-bottom: 0;
+}
+
+.model-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.model-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.permission-item {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.permission-item:hover {
+    background: rgba(var(--primal-rgb, 13, 110, 253), 0.05);
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+[data-bs-theme="dark"] .permissions-card {
+    background: rgba(43, 48, 53, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .permissions-card-header {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .model-group {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}

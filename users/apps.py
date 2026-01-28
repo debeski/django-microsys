@@ -4,20 +4,21 @@ from django.apps import AppConfig
 
 def custom_permission_str(self):
     """Custom Arabic translations for Django permissions"""
-    model_name = str(self.content_type)
     permission_name = str(self.name)
 
-    # Translate default permissions
-    if "Can add" in permission_name:
-        permission_name = permission_name.replace("Can add", " إضافة ")
-    elif "Can change" in permission_name:
-        permission_name = permission_name.replace("Can change", " تعديل ")
-    elif "Can delete" in permission_name:
-        permission_name = permission_name.replace("Can delete", " حذف ")
-    elif "Can view" in permission_name:
-        permission_name = permission_name.replace("Can view", " عرض ")
+    # Translation map for keywords
+    replacements = {
+        "Can add": "إضافة",
+        "Can change": "تعديل",
+        "Can delete": "حذف",
+        "Can view": "عرض",
+        "permission": "الصلاحيات",
+    }
 
-    return f"{permission_name}"
+    for en, ar in replacements.items():
+        permission_name = permission_name.replace(en, ar)
+
+    return permission_name.strip()
 
 
 class UsersConfig(AppConfig):
@@ -27,5 +28,17 @@ class UsersConfig(AppConfig):
 
     def ready(self):
         from django.contrib.auth.models import Permission
-        Permission.__str__ = custom_permission_str
+        from django.apps import apps
+        
+        # Set Arabic verbose names for Auth app and Permission model
+        try:
+            auth_config = apps.get_app_config('auth')
+            auth_config.verbose_name = "نظام المصادقة" # "Auth" -> Identity/Authentication
+            
+            Permission.__str__ = custom_permission_str
+            Permission._meta.verbose_name = "ادارة الصلاحيات"
+            Permission._meta.verbose_name_plural = "الصلاحيات"
+        except (LookupError, AttributeError):
+            pass
+
         import users.signals
