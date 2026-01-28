@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="micro_users",
-    version="1.8.1",
+    version="1.8.2",
     author="DeBeski",
     author_email="debeski1@gmail.com",
     description="Arabic django user management app with abstract user, permissions, and activity logging",

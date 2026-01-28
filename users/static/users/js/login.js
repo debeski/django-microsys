@@ -1,55 +1,3 @@
-var current = null;
-
-document.querySelector('#username').addEventListener('focus', function(e) {
-  if (current) current.pause();
-  current = anime({
-    targets: 'path',
-    strokeDashoffset: {
-      value: 0,
-      duration: 700,
-      easing: 'easeOutQuart'
-    },
-    strokeDasharray: {
-      value: '240 1386',
-      duration: 700,
-      easing: 'easeOutQuart'
-    }
-  });
-});
-
-document.querySelector('#password').addEventListener('focus', function(e) {
-  if (current) current.pause();
-  current = anime({
-    targets: 'path',
-    strokeDashoffset: {
-      value: -336,
-      duration: 700,
-      easing: 'easeOutQuart'
-    },
-    strokeDasharray: {
-      value: '240 1386',
-      duration: 700,
-      easing: 'easeOutQuart'
-    }
-  });
-});
-
-document.querySelector('#submit').addEventListener('focus', function(e) {
-  if (current) current.pause();
-  current = anime({
-    targets: 'path',
-    strokeDashoffset: {
-      value: -730,
-      duration: 700,
-      easing: 'easeOutQuart'
-    },
-    strokeDasharray: {
-      value: '530 1386',
-      duration: 700,
-      easing: 'easeOutQuart'
-    }
-  });
-});
 
 // Hide the login button in the title bar if present.
 document.addEventListener("DOMContentLoaded", function() {
@@ -57,4 +5,24 @@ document.addEventListener("DOMContentLoaded", function() {
     if (loginTitleButton) {
         loginTitleButton.style.display = "none";
     }
+
+    // Autofocus on username field
+    var usernameField = document.getElementById("username");
+    if (usernameField) {
+        usernameField.focus();
+    }
+
+    // Handle Enter key press for form submission
+    var loginInputs = document.querySelectorAll(".login-input");
+    loginInputs.forEach(function(input) {
+        input.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                var form = input.closest("form");
+                if (form) {
+                    form.submit();
+                }
+            }
+        });
+    });
 });
