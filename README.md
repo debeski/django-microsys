@@ -60,6 +60,21 @@ MIDDLEWARE = [
 ]
 ```
 
+3. Add Context Processor in `settings.py` (Optional, for `scope_enabled` variable in templates):
+```python
+TEMPLATES = [
+    {
+        # ...
+        'OPTIONS': {
+            'context_processors': [
+                # ...
+                'users.context_processors.scope_settings', # Add this line
+            ],
+        },
+    },
+]
+```
+
 3. Set custom user model in `settings.py`:
 ```python
 AUTH_USER_MODEL = 'users.CustomUser'
@@ -182,3 +197,7 @@ MICRO_USERS_THEME = {
 | v1.8.0   | • **Permissions UI**: Complete redesign with App/Model-based grouping and hierarchical checkboxes<br>• **Aesthetics**: Applied modern glassmorphism theme to permission cards with interactive toggles<br>• **Security**: Implemented 3-level security logic (GM, SM, User) and "invisible" Superuser protection<br>• **Foolproofing**: Added self-editing protection for staff and scope enforcement for managers<br>• **Localization**: Fully translated system auth labels and metadata to Arabic |
 | v1.8.1   | • **UI Refinement**: Swapped `Email` and `Phone` positions across all forms, tables, and detail views<br>• **Field Logic**: Set `Email` and `Phone` as optional (not required) for all users<br>• **Security**: Added `manage_staff` custom permission to restrict `is_staff` management to authorized managers only<br>• **Bug Fix**: Reserved `manage_staff` assignment power strictly for Superusers and fixed UI grouping for custom permissions |
 | v1.8.2   | • **Login UX**: Enhanced login flow with auto-focus on username and improved "Enter to Submit" handling |
+| v1.8.3   | • **CSP Compliance**: Added `nonce` attribute support to all inline and external script tags (Login, Permissions, Manage Users) for Content Security Policy compliance |
+| v1.8.4   | • **Strict CSP**: Refactored inline JS event handlers to use Event Listeners, fully resolving CSP violation errors |
+| v1.8.5   | • **Optional Scopes**: Added ability for Superusers to toggle Scope system ON/OFF via User Management interface |
+| v1.8.6   | • **Strict CSP Repair**: Fixed remaining inline event handlers in User Management pages (`manage_users`, `scope_form`) that were violating CSP directives, moving all logic to external `manage_users.js` |

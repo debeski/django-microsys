@@ -14,7 +14,7 @@
                  aria-expanded="false">
                 
                 <div class="d-flex align-items-center">
-                    <div class="form-check me-3" onclick="event.stopPropagation()">
+                    <div class="form-check me-3 prevent-toggle">
                         <input class="form-check-input app-master-checkbox" type="checkbox" id="master_{{ app_label }}">
                         <label class="form-check-label d-none" for="master_{{ app_label }}">تحديد الكل</label>
                     </div>
@@ -71,5 +71,5 @@
     </div>
 </div>
 
-<script src="{% static 'users/js/permissions.js' %}"></script>
+<script src="{% static 'users/js/permissions.js' %}" nonce="{{ request.csp_nonce }}"></script>
 {% endwith %}

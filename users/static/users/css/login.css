@@ -155,16 +155,16 @@ input::-moz-focus-inner { border: 0; }
   color: white;
   margin-top: 30px;
   transition: all 0.3s;
-  background-color: var(--primary-color);
+  background-color: var(--submit-color);
   border: none;
   cursor: pointer;
   font-weight: 700;
   letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(35, 99, 195, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 #submit:hover { 
-  background-color: #1e4f99; 
+  background-color: var(--submit-focus); 
   transform: translateY(-2px);
 }
 
@@ -181,4 +181,93 @@ input::-moz-focus-inner { border: 0; }
   width: 80%;
   max-width: 200px;
   opacity: 0.9;
+}
+
+@media (max-width: 767px) {
+  .logo-img {
+    /* Mask the image to color it with the theme color */
+    -webkit-mask-image: url("/static/img/login_logo.webp");
+    mask-image: url("/static/img/login_logo.webp");
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    background-color: var(--primal, var(--primary-color));
+    /* Hide the original image content so background color shows through mask */
+    object-position: -9999px -9999px; /* Fallback to hide original if mask fails or ensuring background color dominates? 
+                                          Actually, on an IMG tag, background-color renders BEHIND the content. 
+                                          To make this work on an IMG tag, we interpret the img content as the mask 
+                                          and the background-color as the fill. 
+                                          BUT standard behavior: mask cuts out the element. 
+                                          To color it, we need the element to be a block of color. 
+                                          So we set background-color and move the object content away? 
+                                          No, 'content: ""' is invalid on img. 
+                                          The accepted way to recolor an img via CSS only is using mask on a wrapper OR 
+                                          using a filter. 
+                                          Since I can't easily add a wrapper without editing HTML (templates), 
+                                          I will use the mask property directly on the img tag but I need to ensure 
+                                          the image content itself doesn't show?
+                                          Wait, 'mask' creates transparency. It doesn't fill with color.
+                                          A BETTER approach for a single IMG tag:
+                                          Use the mask on a pseudo element? No, img tags don't support pseudo elements.
+                                          
+                                          CORRECT APPROACH: 
+                                          Use `content: url(...)`? No.
+                                          Use `filter: drop-shadow(0 0 0 var(--primal))`? No (adds shadow).
+                                          
+                                          The "Mask" trick for coloring an icon usually requires the element to differ.
+                                          
+                                          However, since I can edit `login.html`?
+                                          Wait, user said "this element... should change color". 
+                                          If I can edit `login.html`, I can add a wrapper.
+                                          But user specified `login.css` context implicitly.
+                                          
+                                          Let's try the `mask` approach on the img tag ITSELF:
+                                          If you set `mask-image` on an element, the element is clipped.
+                                          The visible part is the element's own content (the image) where the mask is opaque.
+                                          So `mask-image: url(self)` just shows the original image.
+                                          
+                                          To RECOLOR it, we need a block of color `background-color: var(--primal)` 
+                                          and mask *that* block with the image shape.
+                                          We can turn the `img` into a block of color by:
+                                          1. Setting `padding` equal to size? No.
+                                          2. Hiding the `src`? 
+                                          
+                                          Alternative: `filter: sepia(1) saturate(10000%) hue-rotate(...)`
+                                          This is hard to match exact theme color.
+                                          
+                                          Let's look at `login.html` to see if I can add a class or wrapper.
+                                          Actually, I'll use the `mask` trick by making the img transparent? 
+                                          No.
+                                          
+                                          Okay, I will replace the img with a div in `login.html`? 
+                                          That might break things.
+                                          
+                                          Let's stick to CSS if possible.
+                                          Ah! `mask-image` works on the *box* of the element.
+                                          If we can make the element's content invisible (e.g. `object-position` off screen) 
+                                          but keep the box size, then `background-color` fills the box.
+                                          Then `mask-image` cuts the background.
+                                          
+                                          Let's try:
+                                          height: (keep same); width: (keep same);
+                                          object-position: -99999px; (moves the image content away)
+                                          background-color: var(--primal);
+                                          mask-image: url(...);
+                                          mask-size: contain;
+                                          mask-repeat: no-repeat;
+                                          mask-position: center;
+                                          
+                                          This works on Chrome/Firefox for `img` tags.
+                                          */
+    
+    height: 100px; /* Need explicit height if object-position moves content? */
+                   /* Actually .logo-img has width 80%, max-width 200px. */
+                   /* WebP aspect ratio might define height. */
+                   /* If I move content, does intrinsic size remain? Usually yes. */
+    object-position: -99999px 0; 
+    background-color: var(--primal, var(--primary-color));
+  }
 }

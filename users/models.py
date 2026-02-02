@@ -14,6 +14,24 @@ class Scope(models.Model):
     class Meta:
         verbose_name = "نطاق"
         verbose_name_plural = "النطاقات"
+class ScopeSettings(models.Model):
+    is_enabled = models.BooleanField(default=False, verbose_name="تفعيل النطاقات")
+
+    class Meta:
+        verbose_name = "إعدادات النطاق"
+        verbose_name_plural = "إعدادات النطاق"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super(ScopeSettings, self).save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "إعدادات النطاق"
 
 class CustomUser(AbstractUser):
     phone = models.CharField(max_length=15, blank=True, null=True, verbose_name="رقم الهاتف")

@@ -2,12 +2,12 @@
 
 <div class="d-flex justify-content-between mb-3">
     <h5 class="modal-title">{% if scope_id %}تعديل نطاق{% else %}إضافة نطاق جديد{% endif %}</h5>
-    <button class="btn btn-secondary" onclick="loadScopeForm('{% url 'manage_scopes' %}')">
+    <button class="btn btn-secondary js-load-scope-form" data-url="{% url 'manage_scopes' %}">
         <i class="bi bi-arrow-right me-1"></i> عودة للقائمة
     </button>
 </div>
 
-<form id="scopeForm" onsubmit="submitScopeForm(event, '{% url 'save_scope' %}{% if scope_id %}/{{ scope_id }}{% endif %}')">
+<form id="scopeForm" data-url="{% url 'save_scope' %}{% if scope_id %}/{{ scope_id }}{% endif %}">
     {% csrf_token %}
     {% crispy form %}
     

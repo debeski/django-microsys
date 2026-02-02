@@ -82,4 +82,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial State Sync
     document.querySelectorAll('.model-group').forEach(group => updateModelMasterStatus(group));
     document.querySelectorAll('.permissions-card').forEach(card => updateAppMasterStatus(card));
+
+    // Prevent toggle propagation for specific elements
+    document.querySelectorAll('.prevent-toggle').forEach(el => {
+        el.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
 });

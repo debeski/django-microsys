@@ -24,4 +24,5 @@ urlpatterns = [
     path("scopes/save/", views.save_scope, name="save_scope"),
     path("scopes/save/<int:pk>/", views.save_scope, name="save_scope"),
     path("scopes/delete/<int:pk>/", views.delete_scope, name="delete_scope"),
+    path('scopes/toggle/', views.toggle_scopes, name='toggle_scopes'),
 ]

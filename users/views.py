@@ -22,6 +22,7 @@ from .signals import get_client_ip
 from .tables import UserTable
 from .forms import CustomUserCreationForm, CustomUserChangeForm, ArabicPasswordChangeForm, ResetPasswordForm, UserProfileEditForm
 from .filters import UserFilter
+from .utils import is_scope_enabled
 
 User = get_user_model() # Use custom user model
 
@@ -66,6 +67,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTa
     table_class = UserTable
     filterset_class = UserFilter  # Set the filter class to apply filtering
     template_name = "users/manage_users.html"
+    paginate_by = 10
     
     # Restrict access to only staff users
     def test_func(self):
@@ -86,15 +88,27 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTa
                 qs = qs.filter(scope=self.request.user.scope)
         return qs
 
+    def get_table(self, **kwargs):
+        table = super().get_table(**kwargs)
+        if not is_scope_enabled():
+            table.exclude = ('scope',)
+        return table
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user_filter = self.get_filterset(self.filterset_class)
-
-        # Apply the pagination
-        RequestConfig(self.request, paginate={'per_page': 10}).configure(self.table_class(user_filter.qs))
+        scope_enabled = is_scope_enabled()
         
         context["filter"] = user_filter
         context["users"] = user_filter.qs
+        context["scope_enabled"] = scope_enabled
+        
+        # Check if we can disable scopes (only if no users are assigned to any scope)
+        can_toggle_scope = True
+        if scope_enabled:
+            can_toggle_scope = not User.objects.filter(scope__isnull=False).exists()
+        
+        context["can_toggle_scope"] = can_toggle_scope
         return context
 
 
@@ -196,7 +210,9 @@ class UserActivityLogView(LoginRequiredMixin, UserPassesTestMixin, SingleTableMi
 
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)
-        if self.request.user.scope:
+        if not is_scope_enabled():
+            table.exclude = ('scope',)
+        elif self.request.user.scope:
             table.exclude = ('scope',)
         return table
 
@@ -310,6 +326,9 @@ def manage_scopes(request):
     """
     Returns the initial modal content with the table.
     """
+    if not is_scope_enabled():
+         return JsonResponse({'error': 'Scope management is disabled.'}, status=403)
+
     if request.user.scope:
         return JsonResponse({'error': 'Permission denied.'}, status=403)
 
@@ -381,3 +400,23 @@ def save_scope(request, pk=None):
 @user_passes_test(is_staff)
 def delete_scope(request, pk):
     return JsonResponse({'success': False, 'error': 'تم تعطيل حذف النطاقات لأسباب أمنية.'})
+@login_required
+@user_passes_test(is_superuser)
+def toggle_scopes(request):
+    if request.method == "POST":
+        ScopeSettings = apps.get_model('users', 'ScopeSettings')
+        settings = ScopeSettings.load()
+        
+        # Safety Check: Prevent disabling if users are assigned to scopes
+        if settings.is_enabled:
+            if User.objects.filter(scope__isnull=False).exists():
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'لا يمكن تعطيل النطاقات لوجود مستخدمين معينين لنطاقات حالية. يرجى إزالة النطاقات من كافة المستخدمين أولاً.'
+                }, status=200) # Use 200 to handle error in JS manually
+        
+        settings.is_enabled = not settings.is_enabled
+        settings.save()
+        log_user_action(request, request.user, "UPDATE", f"Scope Settings: {'Enabled' if settings.is_enabled else 'Disabled'}")
+        return JsonResponse({'success': True, 'is_enabled': settings.is_enabled})
+    return JsonResponse({'success': False}, status=400)

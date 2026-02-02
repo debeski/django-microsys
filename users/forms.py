@@ -5,7 +5,7 @@ from django.contrib.auth.models import Permission as Permissions
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, SetPasswordForm
 from django.contrib.auth import get_user_model
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Field, Div, HTML, Submit
+from crispy_forms.layout import Layout, Field, Div, HTML, Submit, Row
 from crispy_forms.bootstrap import FormActions
 from PIL import Image
 from django.core.exceptions import ValidationError
@@ -165,6 +165,12 @@ class CustomUserCreationForm(UserCreationForm):
             user_perms = self.user.user_permissions.all() | Permissions.objects.filter(group__user=self.user)
             self.fields['permissions'].queryset = self.fields['permissions'].queryset.filter(id__in=user_perms.values_list('id', flat=True))
         
+        ScopeSettings = apps.get_model('users', 'ScopeSettings')
+        if not ScopeSettings.load().is_enabled:
+            self.fields['scope'].disabled = True
+            self.fields['scope'].widget = forms.HiddenInput()
+            self.fields['scope'].required = False
+        
         if self.user and not self.user.is_superuser and self.user.scope:
             self.fields['scope'].initial = self.user.scope
             self.fields['scope'].disabled = True
@@ -187,14 +193,15 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields["email"].label = "البريد الإلكتروني"
         self.fields["first_name"].label = "الاسم"
         self.fields["last_name"].label = "اللقب"
-        self.fields["is_staff"].label = "صلاحيات انشاء و تعديل المستخدمين"
+        self.fields["is_staff"].label = "صلاحيات انشاء و تعديل المستخدمين (مسؤول)"
         self.fields["password1"].label = "كلمة المرور"
         self.fields["password2"].label = "تأكيد كلمة المرور"
         self.fields["is_active"].label = "تفعيل الحساب"
 
         # Help Texts
-        self.fields["username"].help_text = "اسم المستخدم يجب أن يكون فريدًا، 50 حرفًا أو أقل. فقط حروف، أرقام و @ . + - _"
+        self.fields["username"].help_text = "اسم المستخدم يجب أن يكون فريدًا، 20 حرفًا أو أقل. فقط حروف، أرقام و @ . + - _"
         self.fields["email"].help_text = "أدخل عنوان البريد الإلكتروني الصحيح"
+        self.fields["phone"].help_text = "أدخل رقم الهاتف الصحيح بالصيغة الاتية 09XXXXXXXX"
         self.fields["is_staff"].help_text = "يحدد ما إذا كان بإمكان المستخدم الوصول إلى قسم ادارة المستخدمين."
         self.fields["is_active"].help_text = "يحدد ما إذا كان يجب اعتبار هذا الحساب نشطًا."
         self.fields["password1"].help_text = "كلمة المرور يجب ألا تكون مشابهة لمعلوماتك الشخصية، وأن تحتوي على 8 أحرف على الأقل، وألا تكون شائعة أو رقمية بالكامل.."
@@ -203,21 +210,21 @@ class CustomUserCreationForm(UserCreationForm):
         # Use Crispy Forms Layout helper
         self.helper = FormHelper()
         self.helper.layout = Layout(
-            "username",
-            "phone",
-            "password1",
-            "password2",
+            Row(Field("username", css_class="form-control")),            
+            Row(Field("password1", css_class="form-control")),
+            Row(Field("password2", css_class="form-control")),
             HTML("<hr>"),
-            Div(
-                Div(Field("first_name", css_class="col-md-6"), css_class="col-md-6"),
-                Div(Field("last_name", css_class="col-md-6"), css_class="col-md-6"),
+            Row(
+                Div(Field("first_name", css_class="form-control"), css_class="col-md-6"),
+                Div(Field("last_name", css_class="form-control"), css_class="col-md-6"),
                 css_class="row"
             ),
-            Div(
-                Div(Field("email", css_class="col-md-6"), css_class="col-md-6"),
-                Div(Field("scope", css_class="col-md-6"), css_class="col-md-6"),
+            Row(
+                Div(Field("phone", css_class="form-control"), css_class="col-md-6"),
+                Div(Field("email", css_class="form-control"), css_class="col-md-6"),
                 css_class="row"
             ),
+            Row(Field("scope", css_class="form-control")),
             HTML("<hr>"),
             Field("permissions", css_class="col-12"),
             "is_staff",
@@ -233,7 +240,7 @@ class CustomUserCreationForm(UserCreationForm):
                 ),
                 HTML(
                     """
-                    <a href="{% url 'manage_users' %}" class="btn btn-secondary">
+                    <a href="{% url 'manage_users' %}" class="btn btn-danger">
                         <i class="bi bi-arrow-return-left text-light me-1 h4"></i> إلغـــاء
                     </a>
                     """
@@ -288,17 +295,23 @@ class CustomUserChangeForm(UserChangeForm):
         self.fields["email"].label = "البريد الإلكتروني"
         self.fields["first_name"].label = "الاسم الاول"
         self.fields["last_name"].label = "اللقب"
-        self.fields["is_staff"].label = "صلاحيات انشاء و تعديل المستخدمين"
+        self.fields["is_staff"].label = "صلاحيات انشاء و تعديل المستخدمين (مسؤول)"
         self.fields["is_active"].label = "الحساب مفعل"
         
         # Help Texts
-        self.fields["username"].help_text = "اسم المستخدم يجب أن يكون فريدًا، 50 حرفًا أو أقل. فقط حروف، أرقام و @ . + - _"
+        self.fields["username"].help_text = "اسم المستخدم يجب أن يكون فريدًا، 20 حرفًا أو أقل. فقط حروف، أرقام و @ . + - _"
         self.fields["email"].help_text = "أدخل عنوان البريد الإلكتروني الصحيح"
         self.fields["is_staff"].help_text = "يحدد ما إذا كان بإمكان المستخدم الوصول إلى قسم ادارة المستخدمين."
         self.fields["is_active"].help_text = "يحدد ما إذا كان يجب اعتبار هذا الحساب نشطًا. قم بإلغاء تحديد هذا الخيار بدلاً من الحذف."
 
         if user_instance:
             self.fields["permissions"].initial = user_instance.user_permissions.all()
+
+        ScopeSettings = apps.get_model('users', 'ScopeSettings')
+        if not ScopeSettings.load().is_enabled:
+            self.fields['scope'].disabled = True
+            self.fields['scope'].widget = forms.HiddenInput()
+            self.fields['scope'].required = False
 
         # --- Foolproofing & Role-based logic ---
         if self.user and not self.user.is_superuser:
@@ -335,19 +348,19 @@ class CustomUserChangeForm(UserChangeForm):
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            "username",
-            "phone",
+            Row(Field("username", css_class="form-control")),            
             HTML("<hr>"),
-            Div(
-                Div(Field("first_name", css_class="col-md-6"), css_class="col-md-6"),
-                Div(Field("last_name", css_class="col-md-6"), css_class="col-md-6"),
+            Row(
+                Div(Field("first_name", css_class="form-control"), css_class="col-md-6"),
+                Div(Field("last_name", css_class="form-control"), css_class="col-md-6"),
                 css_class="row"
             ),
-            Div(
-                Div(Field("email", css_class="col-md-6"), css_class="col-md-6"),
-                Div(Field("scope", css_class="col-md-6"), css_class="col-md-6"),
+            Row(
+                Div(Field("phone", css_class="form-control"), css_class="col-md-6"),
+                Div(Field("email", css_class="form-control"), css_class="col-md-6"),
                 css_class="row"
             ),
+            Row(Field("scope", css_class="form-control")),
             HTML("<hr>"),
             Field("permissions", css_class="col-12"),
             "is_staff",
@@ -363,14 +376,14 @@ class CustomUserChangeForm(UserChangeForm):
                 ),
                 HTML(
                     """
-                    <a href="{% url 'manage_users' %}" class="btn btn-secondary">
+                    <a href="{% url 'manage_users' %}" class="btn btn-danger">
                         <i class="bi bi-arrow-return-left text-light me-1 h4"></i> إلغـــاء
                     </a>
                     """
                 ),
                 HTML(
                     """
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
                         <i class="bi bi-key-fill text-light me-1 h4"></i> إعادة تعيين كلمة المرور
                     </button>
                     """

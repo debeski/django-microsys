@@ -22,7 +22,8 @@
             {% if user.is_superuser and not record.is_staff %}
             <li>
                 <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal"
-                data-user-id="{{ record.pk }}" data-user-name="{{ record.username }}">
+                data-user-id="{{ record.pk }}" data-user-name="{{ record.username }}"
+                data-delete-url="{% url 'delete_user' record.pk %}">
                 <i class="bi bi-x-octagon text-danger me-1 h5"> </i> حذف
                 </a>
             </li>
