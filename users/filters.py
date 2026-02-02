@@ -6,7 +6,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Field, HTML, Hidden
 from django.db.models import Q
 from django.apps import apps  # Import apps
-
+from users.utils import is_scope_enabled
 User = get_user_model()  # Use custom user model
 
 class UserFilter(django_filters.FilterSet):
@@ -104,9 +104,9 @@ class UserActivityLogFilter(django_filters.FilterSet):
         row_fields = [
             Column(Field('keyword', placeholder="البحث"), css_class='form-group col-auto flex-fill'),
         ]
-        
-        if not (self.request and self.request.user.scope):
-             row_fields.append(Column(Field('scope', placeholder="النطاق", dir="rtl"), css_class='form-group col-auto'))
+        if is_scope_enabled():
+            if not (self.request and self.request.user.scope):
+                row_fields.append(Column(Field('scope', placeholder="النطاق", dir="rtl"), css_class='form-group col-auto'))
 
         # Prepare clear button URL with sort parameter if exists
         clear_url = '{% url "user_activity_log" %}'
