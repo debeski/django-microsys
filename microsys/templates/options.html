@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}خيارات التطبيق{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'main/css/accessibility.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-12">
+            <h2 class="page-title"><i class="bi bi-gear me-2"></i> خيارات التطبيق</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Accessibility Section -->
+        <div class="col-md-6 mb-4 no-print">
+            <div class="option-section h-100">
+                <h4 class="mb-3"><i class="bi bi-eye me-2"></i> سهولة الوصول (Accessibility)</h4>
+                <p class="text-muted small mb-4">تخصيص العرض لمساعدة ذوي الإعاقة البصرية أو عمى الألوان.</p>
+                
+                <div class="d-grid gap-3">
+                    <div class="d-flex justify-content-between align-items-center p-3 border rounded bg-light">
+                        <span>تباين عالي (High Contrast)</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input accessibility-switch" type="checkbox" data-accessibility="high-contrast">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-3 border rounded bg-light">
+                        <span>تدرج رمادي (Grayscale)</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input accessibility-switch" type="checkbox" data-accessibility="grayscale">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-3 border rounded bg-light">
+                        <span>عكس الألوان (Invert)</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input accessibility-switch" type="checkbox" data-accessibility="invert">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-3 border rounded bg-light">
+                        <span>تكبير العرض (x1.5)</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input accessibility-switch" type="checkbox" data-accessibility="large-text">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-3 border rounded bg-light">
+                        <span>الحد من التحركات (Disable Animations)</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input accessibility-switch" type="checkbox" data-accessibility="no-animations">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info Section -->
+        <div class="col-md-6 mb-4">
+            <div class="option-section h-100">
+                <h4 class="mb-3"><i class="bi bi-info-circle me-2"></i> معلومات النظام (System Info)</h4>
+                <table class="table table-sm table-borderless mt-4">
+                    <tr>
+                        <th width="40%">وقت الخادم (Backend):</th>
+                        <td class="text-end dir-ltr font-monospace">{{ current_time|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                    <!-- <tr>
+                        <th width="40%">الذاكرة (RAM):</th>
+                        <td class="text-end dir-ltr font-monospace">
+                            {{ ram_used }}GB / {{ ram_total }}GB 
+                            <span class="badge {% if ram_percent > 90 %}bg-danger{% elif ram_percent > 70 %}bg-warning{% else %}bg-success{% endif %} ms-1">{{ ram_percent }}%</span>
+                        </td>
+                    </tr> -->
+                    <tr>
+                        <th width="40%">التخزين (Storage):</th>
+                        <td class="text-end dir-ltr font-monospace">
+                            {{ disk_used }}GB / {{ disk_total }}GB 
+                            <span class="badge {% if disk_percent > 90 %}bg-danger{% elif disk_percent > 70 %}bg-warning{% else %}bg-success{% endif %} ms-1">{{ disk_percent }}%</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>نظام التشغيل (OS):</th>
+                        <td class="text-end">{{ os_info }}</td>
+                    </tr>
+                    <tr>
+                        <th>نسخة Python:</th>
+                        <td class="text-end font-monospace">{{ python_version }}</td>
+                    </tr>
+                    <tr>
+                        <th>نسخة Django:</th>
+                        <td class="text-end font-monospace">{{ django_version }}</td>
+                    </tr>
+                    <tr>
+                        <th>نسخة DRF:</th>
+                        <td class="text-end font-monospace">{{ drf_version }}</td>
+                    </tr>
+                    <tr>
+                        <th>حالة الـ API:</th>
+                        <td class="text-end font-monospace">
+                            {% if api_reachable %}
+                                <span class="badge bg-success">متاح (Online)</span>
+                            {% else %}
+                                <span class="badge bg-danger" title="{{ api_error }}">غير متاح (Offline)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>قاعدة البيانات (Database):</th>
+                        <td class="text-end font-monospace">PostgreSQL {{ db_info }}</td>
+                    </tr>
+                    <tr>
+                        <th>التخزين المؤقت (Cache):</th>
+                        <td class="text-end font-monospace">Redis {{ redis_info }}</td>
+                    </tr>
+                    <tr>
+                        <th>خادم المهام (Tasks):</th>
+                        <td class="text-end font-monospace">Celery {{ celery_info }}</td>
+                    </tr>
+                    <tr>
+                        <th>إصدار التطبيق (Version):</th>
+                        <td class="text-end"><span class="badge bg-primary">v{{ version }}</span></td>
+                    </tr>
+                </table>
+                <!-- <div class="alert alert-info small">
+                    <i class="bi bi-cpu me-1"></i> مواصفات التطبيق مستقاة من ملف (README).
+                </div> -->
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Theme Selection -->
+        <div class="col-md-6 mb-4 no-print">
+            <div class="option-section h-100">
+                <h4 class="mb-3"><i class="bi bi-palette me-2"></i> سـمة الألوان (Themes)</h4>
+                <p class="text-muted small mb-4">اختر مظهر الألوان المفضل لديك لواجهة المنظومة.</p>
+                <div class="d-flex flex-wrap gap-3">
+                    <div class="text-center">
+                        <div class="rounded-circle border shadow-sm mb-1 theme-preview" style="width: 45px; height: 45px; background: #f6f7f9; cursor: pointer;" data-theme="light" title="الفاتح (الافتراضي)"></div>
+                        <small class="text-muted">أبيض</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="rounded-circle border shadow-sm mb-1 theme-preview" style="width: 45px; height: 45px; background: #2363c3; cursor: pointer;" data-theme="blue" title="الأزرق"></div>
+                        <small class="text-muted">ملكي</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="rounded-circle border shadow-sm mb-1 theme-preview" style="width: 45px; height: 45px; background: #d97706; cursor: pointer;" data-theme="gold" title="الذهبي"></div>
+                        <small class="text-muted">ذهبي</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="rounded-circle border shadow-sm mb-1 theme-preview" style="width: 45px; height: 45px; background: #166534; cursor: pointer;" data-theme="green" title="الأخضر"></div>
+                        <small class="text-muted">أخضر</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="rounded-circle border shadow-sm mb-1 theme-preview" style="width: 45px; height: 45px; background: #7f1d1d; cursor: pointer;" data-theme="red" title="الأحمر"></div>
+                        <small class="text-muted">أحمر</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="rounded-circle border shadow-sm mb-1 theme-preview" style="width: 45px; height: 45px; background: #0f172a; cursor: pointer;" data-theme="dark" title="الوضع الليلي"></div>
+                        <small class="text-muted">ليلي</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Language Placeholder -->
+        <div class="col-md-6 mb-4 no-print">
+            <div class="option-section h-100">
+                <h4 class="mb-3"><i class="bi bi-magic me-2"></i> التعبئة التلقائية (Autofill)</h4>
+                <p class="text-muted small mb-4">تفعيل تعبئة البيانات تلقائياً من آخر خيار تم إدخاله (تاريخ, رقم, ...).</p>
+                
+                <div class="d-flex justify-content-between align-items-center p-3 border rounded bg-light">
+                    <span>تشغيل / إيقاف</span>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autofillToggle" checked>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script nonce="{{ request.csp_nonce }}">
+            document.addEventListener('DOMContentLoaded', () => {
+                // --- Autofill Logic ---
+                const toggle = document.getElementById('autofillToggle');
+                
+                function toggleAutofill() {
+                    const isEnabled = toggle.checked; // true or false
+                    
+                    // 1. Set Cookie for Server-Side
+                    const d = new Date();
+                    d.setTime(d.getTime() + (365*24*60*60*1000));
+                    let expires = "expires="+ d.toUTCString();
+                    document.cookie = "enable_prefill=" + isEnabled + ";" + expires + ";path=/";
+
+                    // 2. Set LocalStorage for Client-Side persistence/sync if needed
+                    localStorage.setItem('enable_prefill', isEnabled);
+
+                    // 3. Show Feedback
+                    if (typeof showToast === 'function') {
+                        showToast(`تم ${isEnabled ? 'تفعيل' : 'إيقاف'} التعبئة التلقائية.`);
+                    }
+                }
+
+                // Check cookie first
+                const getCookie = (name) => {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) return parts.pop().split(';').shift();
+                    return null;
+                };
+                
+                const cookieVal = getCookie('enable_prefill');
+                
+                if (cookieVal !== null) {
+                    toggle.checked = (cookieVal === 'true');
+                } else {
+                    // Default to true if not set
+                    toggle.checked = true;
+                }
+
+                // Attach event listener
+                if (toggle) {
+                    toggle.addEventListener('change', toggleAutofill);
+                }
+
+                // --- Theme Logic (Delegated) ---
+                document.querySelectorAll('[data-theme]').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const theme = this.getAttribute('data-theme');
+                        if (window.setTheme) {
+                            window.setTheme(theme);
+                        }
+                    });
+                });
+
+                // --- Accessibility Logic (Delegated) ---
+                document.querySelectorAll('.accessibility-switch').forEach(el => {
+                    el.addEventListener('change', function() {
+                        const mode = this.getAttribute('data-accessibility');
+                        if (window.setAccessibilityMode) {
+                            window.setAccessibilityMode(mode);
+                        }
+                    });
+                });
+            });
+        </script>
+    </div>
+<!-- </div> -->
+{% endblock %}

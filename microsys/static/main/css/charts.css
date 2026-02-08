@@ -1,0 +1,44 @@
+/* Target the text element inside Plotly's hover layer for RTL correction */
+/* --- Modern Hover Layer Styling --- */
+
+/* 1. Target the SVG path (Background Box) */
+.js-plotly-plot .plotly .hoverlayer .hovertext path {
+    fill: var(--body, #ffffff) !important;
+    stroke: var(--primal, #475569) !important;
+    opacity: 0.95 !important;
+    stroke-width: 1px !important;
+    /* optional shadow via filter if supported, but usually SVG filters are complex in CSS */
+}
+
+/* Dark Theme Specifics for Background */
+:root.theme-dark .js-plotly-plot .plotly .hoverlayer .hovertext path {
+    fill: #1e293b !important; /* Dark Slate Background */
+    stroke: #334155 !important; /* Border Color */
+}
+
+/* 2. Target the Text */
+.hoverlayer .hovertext text {
+    text-anchor: end !important;
+    direction: rtl !important;
+    font-size: 14px !important;
+    font-family: 'Shabwa', sans-serif !important;
+    fill: var(--title, #333) !important; 
+    text-shadow: none !important;
+}
+
+/* Dark Theme Text Overlay */
+:root.theme-dark .hoverlayer .hovertext text {
+    fill: #e2e8f0 !important;
+}
+
+/* Correct legend text alignment in RTL context for Plotly Chart */
+.legendtext {
+    text-anchor: end !important;
+}
+
+/* Set the location of modebar on Plotly Chart */
+.modebar {
+    top: 0px !important;
+    left: 0px !important;
+    right: auto !important;
+}

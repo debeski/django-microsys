@@ -1,0 +1,77 @@
+document.addEventListener('DOMContentLoaded', function() {
+    const root = document.documentElement;
+    const modes = ['high-contrast', 'grayscale', 'invert', 'large-text', 'no-animations'];
+
+    // Load saved preference (Now supports multiple modes)
+    let savedModes = [];
+    try {
+        const stored = localStorage.getItem('accessibilityMode');
+        // Handle legacy string format or new JSON array
+        if (stored) {
+            savedModes = stored.startsWith('[') ? JSON.parse(stored) : [stored];
+        }
+    } catch (e) {
+        console.error("Error parsing accessibility modes", e);
+        savedModes = [];
+    }
+
+    // Apply saved modes
+    savedModes.forEach(mode => {
+        if (modes.includes(mode)) {
+            root.classList.add(`accessibility-${mode}`);
+        }
+    });
+
+    // Function to toggle mode
+    window.setAccessibilityMode = function(mode) {
+        if (!mode || !modes.includes(mode)) return;
+
+        if (savedModes.includes(mode)) {
+            // Remove mode
+            savedModes = savedModes.filter(m => m !== mode);
+            root.classList.remove(`accessibility-${mode}`);
+        } else {
+            // Add mode
+            savedModes.push(mode);
+            root.classList.add(`accessibility-${mode}`);
+        }
+        
+        // Save updated list
+        if (savedModes.length > 0) {
+            localStorage.setItem('accessibilityMode', JSON.stringify(savedModes));
+        } else {
+            localStorage.removeItem('accessibilityMode');
+        }
+        
+        // Visual Update
+        updateAccessibilityUI(savedModes);
+    };
+
+    function updateAccessibilityUI(activeModes) {
+        // Update Switches
+        document.querySelectorAll('.accessibility-switch').forEach(toggle => {
+            const mode = toggle.getAttribute('data-accessibility');
+            if (activeModes.includes(mode)) {
+                toggle.checked = true;
+            } else {
+                toggle.checked = false;
+            }
+        });
+    }
+
+    // Initialize UI on load
+    updateAccessibilityUI(savedModes);
+
+    // Placeholder for Theme selection
+    window.setThemeColor = function(color) {
+        console.log("Theme color selected:", color);
+        // This will be implemented when themes are fully defined
+        alert("سيم تفعيل تغيير الألوان في تحديث قادم.");
+    };
+
+    // Placeholder for Language selection
+    window.setLanguage = function(lang) {
+        console.log("Language selected:", lang);
+        alert("سيم تفعيل تغيير اللغة في تحديث قادم.");
+    };
+});

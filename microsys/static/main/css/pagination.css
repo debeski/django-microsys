@@ -1,0 +1,35 @@
+
+.pagination {
+    --bs-pagination-active-bg: var(--primal) !important;
+    --bs-pagination-active-border-color: var(--primal) !important;
+    --bs-pagination-color: var(--primal) !important;
+}
+
+/* Replace "next" with "➡ Next" */
+.pagination .next .page-link::before {
+    content: ">>";
+    font-size: 16px; /* Match the font size */
+}
+
+/* Replace "previous" with "⬅ Previous" */
+.pagination .previous .page-link::before {
+    content: "<<";
+    font-size: 16px;
+}
+
+/* Hide the original "next" and "previous" text but keep the arrow */
+.pagination .next .page-link,
+.pagination .previous .page-link {
+    font-size: 0; /* Hide original text */
+}
+
+/* Restore font size for the arrows */
+.pagination .next .page-link span,
+.pagination .previous .page-link span {
+    font-size: 16px;
+}
+
+.pagination .next .page-link span,
+.pagination .previous .page-link span {
+    font-size: 0;
+}

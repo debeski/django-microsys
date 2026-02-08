@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}إدارة المستخدمين{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'users/css/style.css' %}">
+
+    <div class="row">
+        <div class="col-12">
+            <h2 class="page-title"><i class="bi bi-people me-2"></i> إدارة المستخدمين</h2>
+        </div>
+    </div>
+
+
+    <form method="get" class="py-2 g-2 no-print">
+        {% crispy filter.form %}
+    </form>
+
+    <div class="card border-light shadow-sm">
+        <div class="card-body p-0 table-responsive-lg">
+            <!-- Render the table -->
+            {% render_table table %}
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center mt-3">
+        <a href="{% url 'create_user' %}" class="btn btn-primary rounded-pill no-print" title="إضافة مستخدم جديد">
+            <i class="bi bi-person-plus-fill me-2 h4"></i> إضافة مستخدم جديد
+        </a>
+    
+        {% if scope_enabled and not request.user.scope %}
+        <button type="button" class="btn btn-info rounded-pill no-print ms-2" title="إدارة النطاقات" id="btn-manage-scopes" data-url="{% url 'manage_scopes' %}">
+            <i class="bi bi-list me-1 h4"></i> إدارة النطاقات
+        </button>
+        {% endif %}
+
+        {% if request.user.is_superuser %}
+        <div class="d-inline-block ms-auto no-print">
+            <div class="form-check form-switch form-check-reverse d-inline-block align-middle">
+                <input class="form-check-input" type="checkbox" id="toggleScopes" 
+                data-url="{% url 'toggle_scopes' %}" data-csrf="{{ csrf_token }}"
+                {% if scope_enabled %}checked{% endif %}
+                {% if scope_enabled and not can_toggle_scope %}disabled title="لا يمكن التعطيل لوجود مستخدمين مرتبطين بنطاقات"{% endif %}>
+                <label class="form-check-label" for="toggleScopes">تفعيل النطاقات</label>
+            </div>
+        </div>
+        {% endif %}
+    
+    </div>
+
+    <!-- Delete Modal -->
+    {% if request.user.is_superuser %}
+    <form id="deleteForm" method="post">
+        {% csrf_token %}
+        <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">تأكيد الحذف</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>هل انت متأكد انك تريد حذف المستخدم <strong><span id="userName"></span></strong>؟</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-danger rounded-pill">نعم، احذف</button>
+                        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endif %}
+
+    <!-- Scope Management Modal -->
+    <div class="modal fade" id="scopeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="scopeModalBody">
+                    <!-- Content loaded via AJAX -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scope Activation Warning Modal -->
+    <div class="modal fade" id="scopeWarningModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-soft-danger border-bottom-0">
+                    <h5 class="modal-title text-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>تحذير هام
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="fw-bold">هل أنت متأكد من رغبتك في تفعيل نظام النطاقات؟</p>
+                    <p class="text-muted mb-0">
+                        تنبيه: بعد تفعيل النظام وتعيين المستخدمين لنطاقات محددة، لن تتمكن من تعطيله لاحقاً دون المخاطرة بفقدان بيانات هيكلية المستخدمين أو تعطل الصلاحيات، او فقدان امكانية الوصول الى البيانات الموجودة على التطبيق.
+                    </p>
+                    <p class="text-danger fw-bold mb-0">
+                        لا يمكن تفعيل او الغاء تفعيل هذه الميزة الا بواسطة مدير النظام (Superuser).
+                    </p>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-danger rounded-pill" id="confirmScopeActivation">نعم، قم بالتفعيل</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script for Scope Modal -->
+
+{% endblock %}
+
+{% block scripts %}
+
+    <script src="{% static 'users/js/manage_users.js' %}" nonce="{{ request.csp_nonce }}"></script>
+
+
+{% endblock %}

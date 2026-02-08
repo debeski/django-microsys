@@ -1,0 +1,91 @@
+/* Reorder Toggle Button */
+.reorder-toggle {
+    font-size: 1.2rem;
+    color: #8c98a4;
+    cursor: pointer;
+    padding: 5px;
+    margin-left: 10px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+.reorder-toggle:hover {
+    color: var(--primal, #2363c3);
+    transform: scale(1.1);
+}
+
+.reorder-toggle.active {
+    color: var(--primal, #2363c3);
+    background-color: rgba(35, 99, 195, 0.1);
+}
+
+/* Hide reorder toggle in collapsed sidebar */
+.sidebar.collapsed .reorder-toggle {
+    display: none;
+}
+
+/* Shake Animation for reorder mode */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.sidebar.reorder-mode .list-group-item[draggable="true"],
+.sidebar.reorder-mode .accordion-body .list-group-item[draggable="true"] {
+    animation: shake 1.5s ease-in-out infinite;
+    cursor: grab;
+}
+
+.sidebar.reorder-mode .list-group-item[draggable="true"]:hover {
+    animation-play-state: paused;
+    background-color: rgba(35, 99, 195, 0.08) !important;
+}
+
+/* Dragging State */
+.sidebar .list-group-item.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+    animation: none !important;
+}
+
+/* Drop Indicator Line */
+.drop-indicator {
+    height: 3px;
+    background: var(--primal, #2363c3);
+    border-radius: 2px;
+    margin: 2px 10px;
+    pointer-events: none;
+    box-shadow: 0 0 8px rgba(35, 99, 195, 0.5);
+    animation: pulseIndicator 0.8s ease-in-out infinite;
+}
+
+@keyframes pulseIndicator {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Ensure theme indicator stays in position */
+.sidebar.collapsed .sidebar-toolbar {
+    justify-content: center;
+}
+
+/* Dark Mode Overrides */
+:root.theme-dark .reorder-toggle {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+:root.theme-dark .reorder-toggle:hover,
+:root.theme-dark .reorder-toggle.active {
+    color: var(--primal, #3b82f6);
+}
+
+:root.theme-dark .reorder-toggle.active {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+:root.theme-dark .drop-indicator {
+    background: var(--primal, #3b82f6);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}

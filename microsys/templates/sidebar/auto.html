@@ -1,0 +1,15 @@
+<div class="sidebar-auto-items" id="sidebarAutoItems">
+{% for item in items %}
+<a href="{{ item.url }}" 
+   class="list-group-item list-group-item-action{% if item.active %} active{% endif %}"
+   data-url-name="{{ item.url_name }}">
+    <i class="bi {{ item.icon }} me-2" style="font-size: 24px;"></i>
+    <span>{{ item.label }}</span>
+</a>
+{% empty %}
+<div class="p-3 text-center text-muted small">
+    <i class="bi bi-inbox mb-2" style="font-size: 24px;"></i>
+    <p class="mb-0">لا توجد عناصر</p>
+</div>
+{% endfor %}
+</div>

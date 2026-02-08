@@ -1,0 +1,78 @@
+<!-- Autofill Toggle for Titlebar -->
+<div class="form-check form-switch d-flex align-items-center me-2" title="التعبئة التلقائية">
+    <input class="form-check-input" type="checkbox" id="autofillToggleTitlebar" style="cursor: pointer;">
+    <label class="form-check-label ms-1 d-none d-md-inline small" for="autofillToggleTitlebar" style="cursor: pointer;">تعبئة تلقائية</label>
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+(function() {
+    const toggle = document.getElementById('autofillToggleTitlebar');
+    if (!toggle) return;
+    
+    // Helper to get cookie
+    const getCookie = (name) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    };
+    
+    // Init state from cookie
+    const cookieVal = getCookie('enable_prefill');
+    toggle.checked = cookieVal === null ? true : (cookieVal === 'true');
+    
+    // Handle toggle change
+    toggle.addEventListener('change', function() {
+        const isEnabled = this.checked;
+        
+        // Set Cookie (1 year expiry)
+        const d = new Date();
+        d.setTime(d.getTime() + (365*24*60*60*1000));
+        document.cookie = "enable_prefill=" + isEnabled + ";expires=" + d.toUTCString() + ";path=/";
+        
+        // Sync localStorage
+        localStorage.setItem('enable_prefill', isEnabled);
+        
+        // If toggled OFF, flush/clear form fields
+        if (!isEnabled) {
+            // Target form in main content area, not the logout form in titlebar
+            const form = document.querySelector('#mainContent form');
+            if (form) {
+                // Clear ALL inputs except hidden, submit, radio, file, checkbox
+                form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="radio"]):not([type="file"]):not([type="checkbox"])').forEach(input => {
+                    input.value = '';
+                });
+                
+                // Also clear flatpickr date inputs specifically (they have this class)
+                form.querySelectorAll('.flatpickr-input').forEach(input => {
+                    input.value = '';
+                    // Clear flatpickr instance if exists
+                    if (input._flatpickr) {
+                        input._flatpickr.clear();
+                    }
+                });
+                
+                // Reset select dropdowns to first option (usually empty/placeholder)
+                form.querySelectorAll('select').forEach(select => {
+                    select.selectedIndex = 0;
+                });
+                
+                // Clear textareas
+                form.querySelectorAll('textarea').forEach(textarea => {
+                    textarea.value = '';
+                });
+                
+                // Uncheck checkboxes (except the autofill toggle itself)
+                form.querySelectorAll('input[type="checkbox"]:not(#autofillToggleTitlebar)').forEach(cb => {
+                    cb.checked = false;
+                });
+            }
+        }
+        
+        // Show feedback toast if available
+        if (typeof showToast === 'function') {
+            showToast(`تم ${isEnabled ? 'تفعيل' : 'إيقاف'} التعبئة التلقائية.${!isEnabled ? ' تم تفريغ الحقول.' : ''}`);
+        }
+    });
+})();
+</script>

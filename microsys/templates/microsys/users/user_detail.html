@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load django_tables2 %}
+{% load static %}
+{% block title %}تفاصيل مستخدم{% endblock %}
+{% block content %}
+
+    <link rel="stylesheet" href="{% static 'main/css/doc_detail.css' %}">
+
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="glass-detail">
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-light pb-3">
+                    <h2 class="display-6 fw-bold text-primary mb-0">
+                        <i class="bi bi-person-lines-fill me-2"></i> تفاصيل المستخدم
+                    </h2>
+                    
+                    <div class="d-flex gap-2">
+                        {% if object.is_active %}
+                            <div class="status-badge status-active" title="حساب مفعل">
+                                <i class="bi bi-check-circle-fill"></i> فعال
+                            </div>
+                        {% else %}
+                            <div class="status-badge status-inactive" title="حساب معطل">
+                                <i class="bi bi-x-circle-fill"></i> معطل
+                            </div>
+                        {% endif %}
+
+                        {% if object.is_staff %}
+                             <div class="status-badge" style="background-color: rgba(13, 110, 253, 0.15); color: #0d6efd;" title="لديه صلاحيات إدارية">
+                                <i class="bi bi-shield-lock-fill"></i> مسؤول
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 border-start ps-md-4">
+                        <div class="info-group">
+                            <div class="info-label-sm">اسم المستخدم</div>
+                            <div class="info-value-lg">{{ object.username }}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label-sm">الاسم الكامل</div>
+                            <div class="info-value-lg">{{ object.get_full_name }}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label-sm">البريد الإلكتروني</div>
+                            <div class="info-value-lg">{{ object.email|default:"-" }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 pe-md-4">
+                        <div class="info-group">
+                            <div class="info-label-sm">رقم الهاتف</div>
+                            <div class="info-value-lg">{{ object.phone|default:"-" }}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label-sm">نوع الصلاحيات</div>
+                            <div class="info-value-lg text-primary">
+                                {% if object.is_superuser %}
+                                    <i class="bi bi-stars me-1"></i> مدير النظام
+                                {% elif object.is_staff %}
+                                    <i class="bi bi-person-gear me-1"></i> مستخدم مسؤول
+                                {% else %}
+                                    <i class="bi bi-person me-1"></i> مستخدم عادي
+                                {% endif %}
+                            </div>
+                        </div>
+                         <div class="row">
+                            <div class="col-6">
+                                <div class="info-group">
+                                    <div class="info-label-sm">تاريخ الإنشاء</div>
+                                    <div class="text-muted fw-bold">{{ object.date_joined|date:"Y-m-d" }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="info-group">
+                                    <div class="info-label-sm">آخر دخول</div>
+                                    <div class="text-muted fw-bold">{{ object.last_login|date:"Y-m-d H:i"|default:"-" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h4 class="section-header mb-3">
+                        <i class="bi bi-activity me-2"></i> سجل النشاط
+                    </h4>
+                    <div class="table-responsive">
+                        {% render_table table %}
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top border-light d-flex justify-content-end">
+                    <a href="{% url 'manage_users' %}" class="btn btn-secondary rounded-pill px-4 fw-bold">
+                        <i class="bi bi-arrow-right me-2"></i> العودة إلى إدارة المستخدمين
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+{% endblock %}

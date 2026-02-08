@@ -1,0 +1,552 @@
+/* --- Dark Theme (Modern) --- */
+:root.theme-dark {
+    --title: #e2e8f0;
+    --body: #0f172a;
+    --htitle: #f8fafc;
+    --hbody: #1e293b;
+    --table-row: #1e293b;
+    --table-row-hover: #334155;
+    --primal: #3b82f6;
+    --primal_dark: #2563eb;
+    --primal-rgb: 59, 130, 246;
+    --btn-primary-shadow: rgba(59, 130, 246, 0.4);
+    --nav-item-color: var(--table-row);
+    color-scheme: dark;
+
+
+    /* Bootstrap Overrides */
+    --bs-primary: var(--primal);
+    --bs-primary-rgb: var(--primal-rgb);
+    --bs-btn-bg: var(--primal);
+    --bs-btn-border-color: var(--primal);
+    --bs-btn-hover-bg: var(--primal_dark);
+    --bs-btn-hover-border-color: var(--primal_dark);
+    --bs-link-color: var(--primal);
+    --bs-link-hover-color: var(--primal_dark);
+    /* Dark Mode Specific Bootstrap Vars */
+    --bs-body-bg: var(--body);
+    --bs-body-color: var(--title);
+
+    /* Login Theme Variables */
+    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    --right-bg: var(--title);
+    --primary-color: var(--primal);
+}
+
+/* Force options to inherit dark theme colors */
+:root.theme-dark select option {
+    background-color: #1e293b;
+    color: #e2e8f0;
+}
+
+/* --- Comprehensive Dark Theme Overrides --- */
+
+/* 1. Global, Cards & Modals */
+:root.theme-dark .card,
+:root.theme-dark .card-body,
+:root.theme-dark .dashboard-card, 
+:root.theme-dark .option-section,
+:root.theme-dark .list-group-item,
+:root.theme-dark .modal-content {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+:root.theme-dark #sidebar {
+    background: #1e293b !important;
+    border-left: 1px solid #334155 !important;
+}
+
+:root.theme-dark .text-muted {
+    color: #94a3b8 !important;
+}
+
+:root.theme-dark .bg-light {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+/* Fix "Gray Fog" - Map white utilities to dark theme colors */
+:root.theme-dark .bg-white {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .border-white {
+    border-color: #334155 !important;
+}
+
+/* 2. Titlebar */
+:root.theme-dark .titlebar {
+    background: linear-gradient(90deg, #0f172a 10%, #1e293b 90%) !important;
+    border-bottom: 1px solid #334155 !important;
+}
+
+:root.theme-dark .titlebar p,
+:root.theme-dark .titlebar .btn-light {
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .titlebar .btn-light:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+/* 3. Forms & Inputs */
+:root.theme-dark .form-control,
+:root.theme-dark .form-select,
+:root.theme-dark .input-group-text {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .form-control:focus,
+:root.theme-dark .form-select:focus {
+    background-color: #0f172a !important; /* Kept same as resting state */
+    border-color: #334155 !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+:root.theme-dark label,
+:root.theme-dark .form-label,
+:root.theme-dark .col-form-label {
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark ::placeholder {
+    color: #64748b !important;
+    opacity: 1;
+}
+
+/* 4. Tables */
+:root.theme-dark .table {
+    color: #e2e8f0 !important;
+    --bs-table-color: #e2e8f0 !important;
+    --bs-table-striped-color: #e2e8f0 !important;
+    --bs-table-active-color: #e2e8f0 !important;
+}
+
+:root.theme-dark .table thead th {
+    background-color: #1e293b !important;
+    color: #fff !important;
+    border-color: #334155 !important;
+}
+
+:root.theme-dark .table>tbody>tr>td, 
+:root.theme-dark .table>tbody>tr>th {
+    border-color: #334155 !important;
+}
+
+:root.theme-dark .table>tbody>tr:nth-child(odd)>td, 
+:root.theme-dark .table>tbody>tr:nth-child(odd)>th {
+    --bs-table-bg-type: #0f172a !important; 
+    background-color: #0f172a !important;
+    color: var(--htitle) !important;
+}
+
+:root.theme-dark .table>tbody>tr:nth-child(even)>td, 
+:root.theme-dark .table>tbody>tr:nth-child(even)>th {
+    --bs-table-bg-type: #1e293b !important;
+    background-color: #1e293b !important;
+    color: var(--htitle) !important;
+}
+
+/* 5. Dropdowns */
+:root.theme-dark .dropdown-menu {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+:root.theme-dark .dropdown-item {
+    color: var(--htitle) !important;
+}
+
+:root.theme-dark .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+/* 6. Sidebar Active State & Scrollbar */
+:root.theme-dark .list-group-item.active {
+    background-color: var(--primal) !important;
+    border-color: var(--primal) !important;
+    color: #fff !important; 
+}
+
+:root.theme-dark ::-webkit-scrollbar-track {
+    background: #0f172a; 
+}
+
+:root.theme-dark ::-webkit-scrollbar-thumb {
+    background: #334155; 
+    border: 3px solid #0f172a;
+}
+
+/* 7. Plotly/Charts (SVG Hacks) */
+:root.theme-dark .js-plotly-plot .main-svg {
+    background: transparent !important;
+}
+
+:root.theme-dark .js-plotly-plot text {
+    fill: #cbd5e1 !important; /* Slate-300 for text */
+}
+
+:root.theme-dark .js-plotly-plot .xgrid,
+:root.theme-dark .js-plotly-plot .ygrid,
+:root.theme-dark .js-plotly-plot .zerolinelayer path {
+    stroke: #334155 !important; /* Darker grid lines */
+}
+
+:root.theme-dark .js-plotly-plot .bg {
+    fill: rgba(0,0,0,0) !important; /* Transparent background for chart area */
+}
+
+/* 8. Text Elements & Headers */
+:root.theme-dark h1, 
+:root.theme-dark h2, 
+:root.theme-dark h3, 
+:root.theme-dark h4, 
+:root.theme-dark h5, 
+:root.theme-dark h6,
+:root.theme-dark .header-title,
+:root.theme-dark .stat-value,
+:root.theme-dark .form-text {
+    color: #e2e8f0 !important;
+}
+
+/* 9. Sidebar & Button Specifics Clean-up */
+:root.theme-dark .sidebar .list-group-item,
+:root.theme-dark .sidebar .accordion-button {
+    border-color: transparent !important;
+}
+
+:root.theme-dark .titlebar .login-title-btn {
+    border-color: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Ensure Soft Buttons (Secondary, Success, Info, Warning, Danger) Retain their identity in Dark Mode */
+/* Force Black Text & Icons for these soft colored buttons */
+:root.theme-dark .btn-secondary,
+:root.theme-dark .btn-success,
+:root.theme-dark .btn-info,
+:root.theme-dark .btn-warning,
+:root.theme-dark .btn-danger {
+    color: #000 !important; /* Force black text */
+}
+
+:root.theme-dark .btn-secondary .bi,
+:root.theme-dark .btn-success .bi,
+:root.theme-dark .btn-info .bi,
+:root.theme-dark .btn-warning .bi,
+:root.theme-dark .btn-danger .bi {
+    color: #000 !important; /* Force black icons */
+}
+
+/* Slightly "Stale" / Desaturated Light Backgrounds for Dark Mode to stand out but not blinding */
+:root.theme-dark .btn-secondary { color: #1e293b !important; } /* Stale Slate-300 */
+:root.theme-dark .btn-success   { color: #064e3b !important; } /* Stale Emerald-200 */
+:root.theme-dark .btn-info      { color: #0c4a6e !important; } /* Stale Sky-200 */
+:root.theme-dark .btn-warning   { color: #78350f !important; } /* Stale Amber-200 */
+:root.theme-dark .btn-danger    { color: #7f1d1d !important; } /* Stale Red-200 */
+
+/* Hover States for Dark Mode Soft Buttons */
+:root.theme-dark .btn-secondary:hover { background-color: #94a3b8 !important; }
+:root.theme-dark .btn-success:hover   { background-color: #6ee7b7 !important; }
+:root.theme-dark .btn-info:hover      { background-color: #7dd3fc !important; }
+:root.theme-dark .btn-warning:hover   { background-color: #fcd34d !important; }
+:root.theme-dark .btn-danger:hover    { background-color: #fca5a5 !important; }
+
+/* Ensure icons inside these specific buttons inherit the specific dark text color defined above */
+:root.theme-dark .btn-secondary .bi,
+:root.theme-dark .btn-success .bi,
+:root.theme-dark .btn-info .bi,
+:root.theme-dark .btn-warning .bi,
+:root.theme-dark .btn-danger .bi {
+    color: inherit !important;
+}
+
+:root.theme-dark .theme-preview {
+    border: none !important;
+    box-shadow: none !important;
+    outline: 2px solid #334155; 
+    outline-offset: 2px;
+}
+
+/* 10. Users App Glass Components & Cards */
+:root.theme-dark .glass-profile,
+:root.theme-dark .glass-card,
+:root.theme-dark .glass-detail {
+    background: rgba(30, 41, 59, 0.95) !important; /* Dark slate background */
+    border: 1px solid #334155 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root.theme-dark .info-label,
+:root.theme-dark .info-label-sm,
+:root.theme-dark .form-label-custom {
+    color: #94a3b8 !important; /* Muted text */
+}
+
+:root.theme-dark .info-value,
+:root.theme-dark .info-value-lg,
+:root.theme-dark .section-header,
+:root.theme-dark .page-title {
+    color: #f1f5f9 !important; /* Bright text */
+}
+
+:root.theme-dark .form-control-glass {
+    background: rgba(15, 23, 42, 0.5) !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .form-control-glass:focus {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border-color: var(--primal) !important;
+}
+
+/* 11. Nav Tabs Visibility */
+:root.theme-dark .nav-link {
+    color: #cbd5e1 !important; /* Inactive tabs: light gray */
+}
+
+:root.theme-dark .nav-link:hover {
+    color: #f8fafc !important;
+}
+
+/* Darken active tab slightly to distinguish */
+:root.theme-dark .nav-link.active {
+    color: #60a5fa !important; /* Active tab: Light Blue 400 */
+    background-color: #162032 !important; /* Slightly darker than card (1e293b) */
+    border-color: #334155 !important;
+}
+
+/* Ensure outline buttons have a visible thin outline */
+:root.theme-dark .btn[class*="btn-outline-"] {
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+:root.theme-dark #decreeTabs .nav-link.active {
+    border-bottom-color: transparent !important;
+}
+
+/* 12. Reports & Gen Report Overrides */
+:root.theme-dark .glass-container,
+:root.theme-dark .report-stat-card {
+    background: rgba(30, 41, 59, 0.95) !important;
+    border: 1px solid #334155 !important;
+    box-shadow: none !important;
+}
+
+:root.theme-dark .filter-label, 
+:root.theme-dark .stat-title {
+    color: #94a3b8 !important;
+}
+
+:root.theme-dark .glass-input {
+    background-color: rgba(15, 23, 42, 0.5) !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+/* 13. Utilities & Icons Fix */
+:root.theme-dark .text-dark,
+:root.theme-dark .bi-three-dots,
+:root.theme-dark .bi-three-dots-vertical,
+:root.theme-dark .bi {
+    color: #e2e8f0 !important;
+}
+
+/* 14. Sidebar Toggle */
+:root.theme-dark .sidebar-toggle {
+    color: #e2e8f0 !important;
+    background-color: transparent !important; /* Ensure it doesn't have a white bg */
+}
+:root.theme-dark .sidebar-toggle:hover {
+    background-color: rgba(255,255,255,0.1) !important;
+    color: #fff !important;
+}
+
+/* 15. Login Screen Overrides ({% static 'users/css/login.css' %}) */
+:root.theme-dark .page .left {
+    background: rgba(30, 41, 59, 0.95) !important; /* Dark slate form container */
+    border: 1px solid #334155 !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+:root.theme-dark .page .right {
+    background: #0f172a !important; /* Darker logo container */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .page label {
+    color: #cbd5e1 !important;
+}
+
+:root.theme-dark .page input {
+    background: rgba(15, 23, 42, 0.5) !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .page input:focus {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border-color: var(--primal) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 16. Pagination Dark Theme */
+:root.theme-dark .pagination .page-link {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+:root.theme-dark .pagination .page-link:hover {
+    background-color: #334155 !important;
+    border-color: #475569 !important;
+    color: #f8fafc !important;
+}
+
+:root.theme-dark .pagination .page-item.active .page-link {
+    background-color: var(--primal) !important;
+    border-color: var(--primal) !important;
+    color: #fff !important;
+}
+
+:root.theme-dark .pagination .page-item.disabled .page-link {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+    color: #475569 !important;
+}
+
+/* 17. File Input Dark Mode Fix */
+:root.theme-dark input[type="file"].form-control {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+:root.theme-dark input[type="file"]::file-selector-button {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+    border: none !important;
+    border-right: 1px solid #475569 !important;
+}
+
+/* 19. Sidebar Tooltip Dark Mode Fix */
+:root.theme-dark .tooltip-custom .tooltip-inner {
+    background-color: #334155 !important; /* Slate-700 (Dark but visible against Slate-900 body) */
+    color: #f8fafc !important; /* Slate-50 - Bright white/gray text */
+    border: 1px solid #475569 !important; /* Subtle border for definition */
+}
+
+/* 18. Permissions Card Header Fix (Users App) */
+:root.theme-dark .permissions-card-header {
+    background-color: #0f172a !important; /* Dark background */
+    color: #e2e8f0 !important; /* Light text */
+    border-bottom: 1px solid #334155 !important;
+}
+
+/* 18b. Form Toggle/Checkbox Dark Mode Fix */
+:root.theme-dark .form-check-input {
+    background-color: #334155 !important; /* Visible track/box when unchecked */
+    border-color: #475569 !important;
+}
+:root.theme-dark .form-check-input:checked {
+    background-color: var(--primal) !important;
+    border-color: var(--primal) !important;
+}
+
+:root.theme-dark .permissions-card-header h5.app-title {
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .permissions-card-body {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .model-group {
+    background-color: #0f172a !important;
+    border: 1px solid #334155 !important;
+}
+
+:root.theme-dark .model-header {
+    background-color: #1e293b !important;
+    border-bottom: 1px solid #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .model-title {
+    color: #e2e8f0 !important;
+}
+
+:root.theme-dark .model-permissions {
+    background-color: #0f172a !important;
+}
+
+:root.theme-dark .permission-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+:root.theme-dark .permissions-card-footer {
+    background-color: #0f172a !important;
+    border-top: 1px solid #334155 !important;
+}
+
+/* 20. Bootstrap Alerts Dark Mode */
+:root.theme-dark .alert-success {
+    background-color: rgba(22, 101, 52, 0.25) !important;
+    border-color: rgba(34, 197, 94, 0.3) !important;
+    color: #86efac !important;
+}
+:root.theme-dark .alert-success .alert-link {
+    color: #4ade80 !important;
+}
+
+:root.theme-dark .alert-warning {
+    background-color: rgba(217, 119, 6, 0.2) !important;
+    border-color: rgba(251, 191, 36, 0.3) !important;
+    color: #fcd34d !important;
+}
+:root.theme-dark .alert-warning .alert-link {
+    color: #fbbf24 !important;
+}
+
+:root.theme-dark .alert-danger {
+    background-color: rgba(127, 29, 29, 0.25) !important;
+    border-color: rgba(248, 113, 113, 0.3) !important;
+    color: #fca5a5 !important;
+}
+:root.theme-dark .alert-danger .alert-link {
+    color: #f87171 !important;
+}
+
+:root.theme-dark .alert-info {
+    background-color: rgba(30, 64, 175, 0.2) !important;
+    border-color: rgba(96, 165, 250, 0.3) !important;
+    color: #93c5fd !important;
+}
+:root.theme-dark .alert-info .alert-link {
+    color: #60a5fa !important;
+}
+
+/* 21. Table Danger Rows Dark Mode */
+:root.theme-dark .table > tbody > tr.table-danger > td,
+:root.theme-dark .table > tbody > tr.table-danger > th {
+    --bs-table-bg-type: rgba(127, 29, 29, 0.25) !important;
+    background-color: rgba(127, 29, 29, 0.25) !important;
+    color: #fca5a5 !important;
+}
+
+:root.theme-dark .table-hover > tbody > tr.table-danger:hover > * {
+    --bs-table-accent-bg: rgba(127, 29, 29, 0.35) !important;
+    background-color: rgba(127, 29, 29, 0.35) !important;
+    color: #fca5a5 !important;
+}

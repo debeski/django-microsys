@@ -1,0 +1,822 @@
+# Fundemental imports
+######################################################
+from django.utils import timezone
+from django.contrib import messages
+from django.contrib.auth import get_user_model, update_session_auth_hash
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.http import JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django_tables2 import RequestConfig, SingleTableView, SingleTableMixin
+from django_filters.views import FilterView
+from django.views.generic.detail import DetailView
+from django.apps import apps
+from django.utils.module_loading import import_string
+from django.contrib.auth.views import LoginView
+from django.conf import settings
+from django.template.loader import render_to_string
+import os
+import re
+import urllib.request
+import psutil
+import platform
+import sys
+import django
+from django.urls import reverse
+
+# Project imports
+#################
+
+from .signals import get_client_ip
+from .tables import UserTable
+from .forms import CustomUserCreationForm, CustomUserChangeForm, ArabicPasswordChangeForm, ResetPasswordForm, UserProfileEditForm
+from .filters import UserFilter
+from .utils import is_scope_enabled
+
+User = get_user_model() # Use custom user model
+
+# Helper Function to log actions
+def log_user_action(request, instance, action, model_name):
+    UserActivityLog = apps.get_model('microsys', 'UserActivityLog')
+    UserActivityLog.objects.create(
+        user=request.user,
+        action=action,
+        model_name=model_name,
+        object_id=instance.pk,
+        number=instance.number if hasattr(instance, 'number') else '',
+        timestamp=timezone.now(),
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+    )
+
+#####################################################################
+
+# Index/Dashboard View
+@login_required
+def index(request):
+    """
+    Dashboard/Landing page that reflects dynamic branding.
+    """
+    context = {
+        'current_time': timezone.now(),
+    }
+    return render(request, 'microsys/index.html', context)
+
+# Custom Login View with Theme Injection
+class CustomLoginView(LoginView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Inject theme configuration from settings
+        context['theme'] = getattr(settings, 'MICRO_USERS_THEME', {})
+        return context
+
+
+# Function to recognize staff
+def is_staff(user):
+    return user.is_staff
+
+
+# Function to recognize superuser
+def is_superuser(user):
+    return user.is_superuser 
+
+
+# Class Function for managing users
+class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTableView):
+    model = User
+    table_class = UserTable
+    filterset_class = UserFilter  # Set the filter class to apply filtering
+    template_name = "microsys/users/manage_users.html"
+    paginate_by = 10
+    
+    # Restrict access to only staff users
+    def test_func(self):
+        return self.request.user.is_staff
+
+    
+    def get_queryset(self):
+        # Apply the filter and order by any logic you need
+        qs = super().get_queryset().order_by('date_joined')
+        # Exclude soft-deleted users (checked via profile now)
+        # We need to filter based on profile reverse relation
+        qs = qs.filter(profile__deleted_at__isnull=True)
+        
+        # Hide superuser entries from non-superusers
+        if not self.request.user.is_superuser:
+            qs = qs.exclude(is_superuser=True)
+            # Restrict to same scope
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.scope:
+                qs = qs.filter(profile__scope=self.request.user.profile.scope)
+        return qs
+
+    def get_table(self, **kwargs):
+        table = super().get_table(**kwargs)
+        if not is_scope_enabled():
+            table.exclude = ('scope',)
+        return table
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_filter = self.get_filterset(self.filterset_class)
+        scope_enabled = is_scope_enabled()
+        
+        context["filter"] = user_filter
+        context["users"] = user_filter.qs
+        context["scope_enabled"] = scope_enabled
+        
+        # Check if we can disable scopes (only if no users are assigned to any scope)
+        can_toggle_scope = True
+        if scope_enabled:
+            can_toggle_scope = not User.objects.filter(profile__scope__isnull=False).exists()
+        
+        context["can_toggle_scope"] = can_toggle_scope
+        return context
+
+
+# Function for creating a new User
+@user_passes_test(is_staff)
+def create_user(request):
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST or None, user=request.user)
+        if form.is_valid():
+            user = form.save(commit=False)
+            # Auto-assign scope for non-superusers
+            if not request.user.is_superuser and hasattr(request.user, 'profile') and request.user.profile.scope:
+                # This logic is handled inside form.save via passed params, but let's be safe
+                pass 
+                
+            user = form.save() # Saves user + profile
+            return redirect("manage_users")
+        else:
+            return render(request, "microsys/users/user_form.html", {"form": form})
+    else:
+        form = CustomUserCreationForm(user=request.user)
+    
+    return render(request, "microsys/users/user_form.html", {"form": form})
+
+
+# Function for editing an existing User
+@user_passes_test(is_staff)
+def edit_user(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    
+    # 🚫 Block staff users from editing superuser accounts
+    if user.is_superuser and not request.user.is_superuser:
+        messages.error(request, "ليس لديك صلاحية لتعديل هذا الحساب!")
+        return redirect('manage_users')
+
+
+    # Restrict to same scope
+    if not request.user.is_superuser:
+        user_scope = user.profile.scope if hasattr(user, 'profile') else None
+        requester_scope = request.user.profile.scope if hasattr(request.user, 'profile') else None
+        
+        if requester_scope and user_scope != requester_scope:
+             messages.error(request, "ليس لديك صلاحية لتعديل هذا المستخدم!")
+             return redirect('manage_users')
+
+    form_reset = ResetPasswordForm(user, data=request.POST or None)
+
+    if request.method == "POST":
+        form = CustomUserChangeForm(request.POST, instance=user, user=request.user)
+        if form.is_valid():
+            user = form.save() # Saves user + profile
+            return redirect("manage_users")
+        else:
+            # Validation errors will be automatically handled by the form object
+            return render(request, "microsys/users/user_form.html", {"form": form, "edit_mode": True, "form_reset": form_reset})
+
+    else:
+        form = CustomUserChangeForm(instance=user, user=request.user)
+
+    return render(request, "microsys/users/user_form.html", {"form": form, "edit_mode": True, "form_reset": form_reset})
+
+
+# Function for deleting a User
+@user_passes_test(is_superuser)
+def delete_user(request, pk):
+    user = get_object_or_404(User, pk=pk)
+
+    # Restrict to same scope
+    if not request.user.is_superuser:
+        user_scope = user.profile.scope if hasattr(user, 'profile') else None
+        requester_scope = request.user.profile.scope if hasattr(request.user, 'profile') else None
+        if requester_scope and user_scope != requester_scope:
+             messages.error(request, "ليس لديك صلاحية لحذف هذا المستخدم!")
+             return redirect('manage_users')
+
+    if request.method == "POST":
+        # Soft delete the user
+        user.is_active = False
+        user.save()
+        
+        # Set deleted_at on profile
+        Profile = apps.get_model('microsys', 'Profile')
+        profile, created = Profile.objects.get_or_create(user=user)
+        profile.deleted_at = timezone.now()
+        profile.save()
+        
+        # Free up the username by appending _del suffix
+        base_username = f"{user.username}_del"
+        new_username = base_username
+        counter = 2
+        
+        # Check if username_del already exists, increment if needed
+        while User.objects.filter(username=new_username).exists():
+            new_username = f"{base_username}{counter}"
+            counter += 1
+        
+        user.username = new_username
+        user.save()
+        return redirect("manage_users")
+    return redirect("manage_users")  # Redirect instead of rendering a separate page
+
+
+# Class Function for the Log
+class UserActivityLogView(LoginRequiredMixin, UserPassesTestMixin, SingleTableMixin, FilterView):
+    model = apps.get_model('microsys', 'UserActivityLog')
+    table_class = import_string('microsys.tables.UserActivityLogTable')
+    filterset_class = import_string('microsys.filters.UserActivityLogFilter')
+    template_name = "microsys/user_activity_log.html"
+
+    def test_func(self):
+        return self.request.user.is_staff  # Only staff can access logs
+    
+    def get_queryset(self):
+        # Order by timestamp descending by default
+        qs = super().get_queryset().order_by('-timestamp')
+        if not self.request.user.is_superuser:
+            qs = qs.exclude(user__is_superuser=True)
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.scope:
+                qs = qs.filter(user__profile__scope=self.request.user.profile.scope)
+        return qs
+
+    def get_table(self, **kwargs):
+        table = super().get_table(**kwargs)
+        if not is_scope_enabled():
+            table.exclude = ('scope',)
+        elif hasattr(self.request.user, 'profile') and self.request.user.profile.scope:
+            table.exclude = ('scope',)
+        return table
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Handle the filter object
+        context['filter'] = self.filterset
+        return context
+
+
+class UserDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = User
+    template_name = "microsys/users/user_detail.html"
+
+    def test_func(self):
+        # only staff can view user detail page
+        return self.request.user.is_staff
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # self.object is the User instance
+        UserActivityLog = apps.get_model('microsys', 'UserActivityLog')
+        logs_qs = UserActivityLog.objects.filter(user=self.object).order_by('-timestamp')
+        
+        # Create table manually
+        UserActivityLogTableNoUser = import_string('microsys.tables.UserActivityLogTableNoUser')
+        table = UserActivityLogTableNoUser(logs_qs)
+        RequestConfig(self.request, paginate={'per_page': 10}).configure(table)
+        
+        context['table'] = table
+        return context
+
+
+# Function that resets a user password
+@user_passes_test(is_staff)
+def reset_password(request, pk):
+    user = get_object_or_404(User, id=pk)
+
+    # 🚫 Block staff users from resetting superuser passwords
+    if user.is_superuser and not request.user.is_superuser:
+        messages.error(request, "ليس لديك صلاحية لتعديل هذا الحساب!")
+        return redirect('manage_users')
+
+    # Restrict to same scope
+    if not request.user.is_superuser:
+        user_scope = user.profile.scope if hasattr(user, 'profile') else None
+        requester_scope = request.user.profile.scope if hasattr(request.user, 'profile') else None
+        if requester_scope and user_scope != requester_scope:
+             messages.error(request, "ليس لديك صلاحية لتعديل هذا المستخدم!")
+             return redirect('manage_users')
+
+    if request.method == "POST":
+        form = ResetPasswordForm(user=user, data=request.POST)  # ✅ Correct usage with SetPasswordForm
+        if form.is_valid():
+            form.save()
+            log_user_action(request, user, "RESET", "رمز سري")
+            return redirect("manage_users")
+        else:
+            print("Form errors:", form.errors)
+            return redirect("edit_user", pk=pk)
+    
+    return redirect("manage_users")  # Fallback redirect
+
+
+# Function for the user profile
+@login_required
+def user_profile(request):
+    user = request.user
+    password_form = ArabicPasswordChangeForm(user)
+    if request.method == 'POST':
+        password_form = ArabicPasswordChangeForm(user, request.POST)
+        if password_form.is_valid():
+            password_form.save()
+            log_user_action(request, user, "UPDATE", "رمز سري")
+            update_session_auth_hash(request, password_form.user)  # Prevent user from being logged out
+            messages.success(request, 'تم تغيير كلمة المرور بنجاح!')
+            return redirect('user_profile')
+        else:
+            # Log form errors
+            messages.error(request, "هناك خطأ في البيانات المدخلة")
+            print(password_form.errors)  # You can log or print errors here for debugging
+
+    return render(request, 'microsys/profile/profile.html', {
+        'user': user,
+        'password_form': password_form
+    })
+
+
+# Function for editing the user profile
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = UserProfileEditForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            user = form.save()
+            log_user_action(request, user, "UPDATE", "بيانات شخصية")
+            messages.success(request, 'تم حفظ التغييرات بنجاح')
+            return redirect('user_profile')
+        else:
+            messages.error(request, 'حدث خطأ أثناء حفظ التغييرات')
+    else:
+        form = UserProfileEditForm(instance=request.user)
+    return render(request, 'microsys/profile/profile_edit.html', {'form': form})
+
+# Scope Management Views
+# ###########################
+
+
+@login_required # staff check handled in template or can be added here
+@user_passes_test(is_staff)
+def manage_scopes(request):
+    """
+    Returns the initial modal content with the table.
+    """
+    if not is_scope_enabled():
+         return JsonResponse({'error': 'Scope management is disabled.'}, status=403)
+
+    if hasattr(request.user, 'profile') and request.user.profile.scope:
+        return JsonResponse({'error': 'Permission denied.'}, status=403)
+
+    Scope = apps.get_model('microsys', 'Scope')
+    ScopeTable = import_string('microsys.tables.ScopeTable')
+    table = ScopeTable(Scope.objects.all())
+    RequestConfig(request, paginate={'per_page': 5}).configure(table)
+    
+    context = {'table': table}
+    html = render_to_string('microsys/scopes/scope_manager.html', context, request=request)
+    return JsonResponse({'html': html})
+
+@login_required
+@user_passes_test(is_staff)
+def get_scope_form(request, pk=None):
+    """
+    Returns the Add/Edit form partial.
+    """
+    if hasattr(request.user, 'profile') and request.user.profile.scope:
+        return JsonResponse({'error': 'Permission denied.'}, status=403)
+
+    ScopeForm = import_string('microsys.forms.ScopeForm')
+    Scope = apps.get_model('microsys', 'Scope')
+
+    if pk:
+        scope = get_object_or_404(Scope, pk=pk)
+        form = ScopeForm(instance=scope)
+    else:
+        form = ScopeForm()
+        
+    html = render_to_string('microsys/scopes/scope_form.html', {'form': form, 'scope_id': pk}, request=request)
+    return JsonResponse({'html': html})
+
+@login_required
+@user_passes_test(is_staff)
+def save_scope(request, pk=None):
+    """
+    Handles form submission. Returns updated table on success, or form with errors on failure.
+    """
+    if hasattr(request.user, 'profile') and request.user.profile.scope:
+        return JsonResponse({'error': 'Permission denied.'}, status=403)
+    
+    ScopeForm = import_string('microsys.forms.ScopeForm')
+    Scope = apps.get_model('microsys', 'Scope')
+    ScopeTable = import_string('microsys.tables.ScopeTable')
+
+    if request.method == "POST":
+        if pk:
+            scope = get_object_or_404(Scope, pk=pk)
+            form = ScopeForm(request.POST, instance=scope)
+        else:
+            form = ScopeForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            # Return updated table
+            table = ScopeTable(Scope.objects.all())
+            RequestConfig(request, paginate={'per_page': 5}).configure(table)
+            html = render_to_string('microsys/scopes/scope_manager.html', {'table': table}, request=request)
+            return JsonResponse({'success': True, 'html': html})
+        else:
+            # Return form with errors
+            html = render_to_string('microsys/scopes/scope_form.html', {'form': form, 'scope_id': pk}, request=request)
+            return JsonResponse({'success': False, 'html': html})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid method'})
+
+@login_required
+@user_passes_test(is_staff)
+def delete_scope(request, pk):
+    return JsonResponse({'success': False, 'error': 'تم تعطيل حذف النطاقات لأسباب أمنية.'})
+
+@login_required
+@user_passes_test(is_superuser)
+def toggle_scopes(request):
+    if request.method == "POST":
+        ScopeSettings = apps.get_model('microsys', 'ScopeSettings')
+        settings = ScopeSettings.load()
+        
+        # Safety Check: Prevent disabling if users are assigned to scopes
+        # Check profile scope now
+        if settings.is_enabled:
+            # We can't easily check 'User' for profile__scope__isnull=False in a generic way 
+            # if we are decoupled, but here we know the structure.
+            if User.objects.filter(profile__scope__isnull=False).exists():
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'لا يمكن تعطيل النطاقات لوجود مستخدمين معينين لنطاقات حالية. يرجى إزالة النطاقات من كافة المستخدمين أولاً.'
+                }, status=200) # Use 200 to handle error in JS manually
+        
+        settings.is_enabled = not settings.is_enabled
+        settings.save()
+        log_user_action(request, request.user, "UPDATE", f"Scope Settings: {'Enabled' if settings.is_enabled else 'Disabled'}")
+        return JsonResponse({'success': True, 'is_enabled': settings.is_enabled})
+    return JsonResponse({'success': False}, status=400)
+
+
+# Section Management Views
+# ###########################
+# View, and CRUD function for section models
+@login_required
+def core_models_view(request):
+    """
+    Manages section models dynamically discovered from the app.
+    Uses ?model= query param with session fallback for tab persistence.
+    """
+    # Discover section models dynamically
+    section_models = discover_section_models(app_name='main', include_children=False)
+    
+    # Build map for easy lookup
+    models_map = {sm['model_name']: sm for sm in section_models}
+    
+    # Get model from query param or session fallback
+    default_model = section_models[0]['model_name'] if section_models else None
+    model_param = request.GET.get('model') or request.session.get('last_active_model', default_model)
+    
+    # Fallback to first discovered model if invalid
+    if model_param not in models_map:
+        model_param = default_model
+    
+    if not model_param or not models_map:
+        return render(request, 'microsys/sections/manage_sections.html', {
+            'error': 'لا توجد موديلات متاحة.',
+        })
+    
+    # Store in session for persistence
+    request.session['last_active_model'] = model_param
+    
+    selected_data = models_map[model_param]
+    selected_model = selected_data['model']
+    
+    # Get classes from discovery result
+    FormClass = selected_data['form_class']
+    TableClass = selected_data['table_class']
+    FilterClass = selected_data['filter_class']
+    
+    if not FormClass or not TableClass:
+        return render(request, 'microsys/sections/manage_sections.html', {
+            'error': 'هناك خطأ في تحميل المودل.',
+            'active_model': model_param,
+            'models': [{'name': sm['model_name'], 'ar_names': sm['verbose_name_plural'], 'count': sm['model'].objects.count()} for sm in section_models],
+        })
+    
+    # Check for edit mode
+    instance_id = request.GET.get('id')
+    instance = None
+    if instance_id:
+        try:
+            instance = selected_model.objects.get(pk=instance_id)
+        except selected_model.DoesNotExist:
+            instance = None
+    
+    # Create form
+    form = FormClass(request.POST or None, instance=instance)
+    
+    # Create filter and queryset
+    queryset = selected_model.objects.all()
+    filter_obj = None
+    if FilterClass:
+        filter_obj = FilterClass(request.GET or None, queryset=queryset)
+        queryset = filter_obj.qs
+    
+    # Create and configure table
+    table = TableClass(queryset, model_name=model_param)
+    RequestConfig(request, paginate={'per_page': 10}).configure(table)
+    
+    # Handle POST
+    if request.method == 'POST':
+        if form.is_valid():
+            saved_instance = form.save(commit=False)
+            # Add created_by/updated_by if fields exist
+            if hasattr(saved_instance, 'created_by') and not saved_instance.pk:
+                saved_instance.created_by = request.user
+            if hasattr(saved_instance, 'updated_by'):
+                saved_instance.updated_by = request.user
+            saved_instance.save()
+            if hasattr(form, 'save_m2m'):
+                form.save_m2m()
+            return redirect('manage_sections')
+    
+    # Handle Subsections (Child Models)
+    subsection_forms = []
+    for sub in selected_data.get('subsections', []):
+        child_model_name = sub['model_name']
+        related_field = sub['related_field']
+        
+        # Link main form field to modal
+        if related_field in form.fields:
+             form.fields[related_field].modal_target = f"addSubsectionModal_{child_model_name}"
+        
+        ChildForm = sub['form_class']
+        child_form_instance = ChildForm()
+        
+        # Override form action to generic add_subsection view
+        if hasattr(child_form_instance, 'helper'):
+             target_url = reverse('add_subsection')
+             child_form_instance.helper.form_action = f"{target_url}?model={child_model_name}&parent={model_param}"
+        
+        subsection_forms.append({
+            'name': child_model_name,
+            'verbose_name': sub['verbose_name'],
+            'form': child_form_instance
+        })
+
+    # Build context
+    context = {
+        'active_model': model_param,
+        'models': [
+            {
+                'name': sm['model_name'], 
+                'ar_names': sm['verbose_name_plural'],
+                'count': sm['model'].objects.count()
+            } 
+            for sm in section_models
+        ],
+        'form': form,
+        'filter': filter_obj,
+        'table': table,
+        'id': instance_id,
+        'ar_name': selected_data['verbose_name'],
+        'ar_names': selected_data['verbose_name_plural'],
+        'subsection_forms': subsection_forms,
+    }
+    
+    return render(request, 'microsys/sections/manage_sections.html', context)
+
+@login_required
+def add_subsection(request):
+    """
+    Generic view to handle adding a new Subsection (child model) via modal.
+    Expects ?model=child_model_name&parent=parent_model_name
+    """
+    child_model_name = request.GET.get('model')
+    parent_model_name = request.GET.get('parent')
+    
+    if not child_model_name:
+         messages.error(request, "معرف القسم الفرعي مفقود.")
+         return redirect('manage_sections')
+
+    # Resolve child model class
+    try:
+        model = apps.get_model('main', child_model_name)
+    except LookupError:
+        messages.error(request, "القسم الفرعي غير موجود.")
+        return redirect('manage_sections')
+        
+    # Resolve Form Class (same logic as discover, or simpler lookup)
+    # We can reuse discover logic or just try import
+    form_path = f"main.forms.{model.__name__}Form"
+    try:
+        form_class = import_string(form_path)
+    except (ImportError, ValueError):
+         if hasattr(model, 'get_form_class'):
+             try: form_class = import_string(model.get_form_class())
+             except: pass
+         else:
+             from django.forms import modelform_factory
+             form_class = modelform_factory(model, fields='__all__')
+    
+    if request.method == 'POST':
+        form = form_class(request.POST)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            if hasattr(instance, 'created_by'):
+                 instance.created_by = request.user
+            instance.save()
+            
+            # AJAX Response
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'id': instance.pk, 'name': str(instance)})
+                
+            messages.success(request, f"تم إضافة {model._meta.verbose_name}: {instance}")
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                 return JsonResponse({'success': False, 'error': form.errors.as_text()})
+            messages.error(request, f"خطأ في إضافة {model._meta.verbose_name}.")
+    
+    # Redirect back to parent tab
+    redirect_url = reverse('manage_sections')
+    if parent_model_name:
+        redirect_url += f"?model={parent_model_name}"
+        
+    return redirect(redirect_url)
+
+
+@login_required
+def edit_subsection(request, pk):
+    """
+    Edit a subsection (child model) by pk.
+    Expects ?model=child_model_name&parent=parent_model_name
+    """
+    child_model_name = request.GET.get('model', 'subaffiliate')
+    parent_model_name = request.GET.get('parent', 'affiliate')
+    
+    try:
+        model = apps.get_model('main', child_model_name)
+        instance = model.objects.get(pk=pk)
+    except (LookupError, model.DoesNotExist):
+        messages.error(request, "القسم الفرعي غير موجود.")
+        return redirect('manage_sections')
+    
+    # Resolve Form Class
+    form_path = f"main.forms.{model.__name__}Form"
+    try:
+        form_class = import_string(form_path)
+    except (ImportError, ValueError):
+        from django.forms import modelform_factory
+        form_class = modelform_factory(model, fields='__all__')
+    
+    if request.method == 'POST':
+        form = form_class(request.POST, instance=instance)
+        if form.is_valid():
+            saved = form.save(commit=False)
+            if hasattr(saved, 'updated_by'):
+                saved.updated_by = request.user
+            saved.save()
+            
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'id': saved.pk, 'name': str(saved)})
+                
+            messages.success(request, f"تم تعديل {model._meta.verbose_name}: {saved}")
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': form.errors.as_text()})
+            messages.error(request, f"خطأ في تعديل {model._meta.verbose_name}.")
+    
+    redirect_url = reverse('manage_sections')
+    if parent_model_name:
+        redirect_url += f"?model={parent_model_name}"
+    return redirect(redirect_url)
+
+
+@login_required
+def delete_subsection(request, pk):
+    """
+    Delete a subsection (child model) by pk.
+    Checks for related records before deletion.
+    """
+    from .utils import has_related_records
+    
+    child_model_name = request.GET.get('model', 'subaffiliate')
+    parent_model_name = request.GET.get('parent', 'affiliate')
+    
+    try:
+        model = apps.get_model('main', child_model_name)
+        instance = model.objects.get(pk=pk)
+    except (LookupError, model.DoesNotExist):
+        messages.error(request, "القسم الفرعي غير موجود.")
+        return redirect('manage_sections')
+    
+    if request.method == 'POST':
+        # Check if locked (has related records)
+        if has_related_records(instance, ignore_relations=['affiliates', 'affiliatedepartment_set']):
+            messages.error(request, "لا يمكن حذف هذا العنصر لارتباطه بسجلات أخرى.")
+        else:
+            name = str(instance)
+            instance.delete()
+            messages.success(request, f"تم حذف {model._meta.verbose_name}: {name}")
+    
+    redirect_url = reverse('manage_sections')
+    if parent_model_name:
+        redirect_url += f"?model={parent_model_name}"
+    return redirect(redirect_url)
+
+
+# Options View
+@login_required
+def options_view(request):
+    """
+    View for system options, accessibility settings, and system info.
+    Reads documented specs from README.md.
+    """
+    readme_path = os.path.join(settings.BASE_DIR, "README.md")
+    readme_content = ""
+    if os.path.exists(readme_path):
+        try:
+            with open(readme_path, "r", encoding="utf-8") as f:
+                readme_content = f.read()
+        except:
+            pass
+
+    # Extract specs from README using regex
+    def extract_spec(pattern):
+        match = re.search(pattern, readme_content)
+        return match.group(1).strip() if match else "N/A"
+
+    # API Health Check (Targeting project's own API via loopback)
+    api_reachable = False
+    api_error = ""
+    try:
+        # Use 127.0.0.1:8000 directly for reliable internal container check
+        api_url = "http://127.0.0.1:8000/api/decrees/" 
+        
+        req = urllib.request.Request(api_url)
+        req.add_header("X-API-KEY", getattr(settings, "X_API_KEY", ""))
+        req.add_header("X-SECRET-KEY", getattr(settings, "X_SECRET_KEY", ""))
+        
+        with urllib.request.urlopen(req, timeout=3) as response:
+            if response.status == 200:
+                api_reachable = True
+            else:
+                api_error = f"Status: {response.status}"
+    except Exception as e:
+        api_reachable = False
+        api_error = str(e)
+
+    # System Stats
+    try:
+        # RAM
+        mem = psutil.virtual_memory()
+        ram_total_gb = mem.total / (1024 ** 3)
+        ram_used_gb = mem.used / (1024 ** 3)
+        ram_percent = mem.percent
+        
+        # Disk
+        disk = psutil.disk_usage('/')
+        disk_total_gb = disk.total / (1024 ** 3)
+        disk_used_gb = disk.used / (1024 ** 3)
+        disk_percent = disk.percent
+    except Exception as e:
+        ram_total_gb = ram_used_gb = ram_percent = 0
+        disk_total_gb = disk_used_gb = disk_percent = 0
+
+    context = {
+        'current_time': timezone.now(),
+        'os_info': f"{platform.system()} {platform.release()}",
+        'python_version': sys.version.split()[0],
+        'django_version': django.get_version(),
+        'api_reachable': api_reachable,
+        'api_error': api_error,
+        'db_info': extract_spec(r'PostgreSQL ([\d.]+)'),
+        'redis_info': extract_spec(r'Redis ([\d.]+)'),
+        'celery_info': extract_spec(r'Celery ([\d.]+)'),
+        'version': settings.VERSION,
+        
+        # System Stats
+        'ram_total': f"{ram_total_gb:.1f}",
+        'ram_used': f"{ram_used_gb:.1f}",
+        'ram_percent': ram_percent,
+        'disk_total': f"{disk_total_gb:.1f}",
+        'disk_used': f"{disk_used_gb:.1f}",
+        'disk_percent': disk_percent,
+    }
+    return render(request, 'options.html', context)
+
+

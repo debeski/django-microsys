@@ -1,0 +1,232 @@
+.sidebar {
+    z-index: 900;
+    transition: width 0.2s ease-in-out;
+    background: linear-gradient(180deg, #ffffff 10%, #f1f7fd 100%);
+    position: sticky;
+    top: var(--header-height, 60px);
+    align-self: flex-start; /* Force to top of flex container */
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: calc(100vh - var(--header-height, 60px));
+    border-left: 1px solid #f1f3f5;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.1) transparent;
+    
+    /* Variables for stable positioning */
+    --sidebar-item-px: 12.5px;
+    --sidebar-icon-width: 40px;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 20px;
+}
+
+.sidebar.collapsed {
+    width: 65px !important;
+}
+
+/* Stable layout for icons - NO OVERRIDES for padding/gap here! */
+.sidebar.collapsed .list-group-item span,
+.sidebar.collapsed .accordion-button span {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    display: inline-block; /* Keep it in flow but hidden */
+}
+
+.sidebar .list-group-item span,
+.sidebar .accordion-button span {
+    transition: opacity 0.2s ease, visibility 0.2s;
+    white-space: nowrap;
+}
+
+/* .sidebar.collapsed .accordion-button::after {
+    display: none !important;
+} */
+
+/* Hide accordion body content when sidebar is collapsed */
+/* .sidebar.collapsed .accordion-collapse {
+    display: none !important;
+} */
+
+/* Also hide any expanded accordion body items text */
+.sidebar.collapsed .accordion-body .list-group-item span {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+}
+
+/* .sidebar-ghost {
+    display: none;
+    flex-shrink: 0;
+} */
+
+@media (max-width: 1100px) {
+    /* .sidebar-ghost {
+        display: none !important;
+    } */
+
+    .sidebar {
+        position: fixed;
+        top: var(--header-height, 60px);
+        right: 0;
+        width: 250px;
+        transition: width 0.15s ease-in-out;
+        height: calc(100vh - var(--header-height, 60px));
+        z-index: 1000;
+        --sidebar-item-px: 6px;
+    }
+    
+    .sidebar.collapsed {
+        width: 0 !important; /* Completely hide when collapsed on mobile */
+        border: none !important;
+        overflow: hidden !important;
+        right: 0; 
+        position: fixed; 
+    }
+}
+/* Sidebar Styling Redesign */
+.sidebar .list-group-item {
+    border: 1px solid transparent !important; /* Reserve space to prevent jumps */
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    color: #5a6474; /* Softer text color */
+    margin: 4px 0;
+    border-radius: 12px !important; /* Rounded pill shape */
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px var(--sidebar-item-px);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sidebar .list-group-item:hover {
+    background-color: transparent !important;
+    color: var(--primal) !important;
+    transform: translateX(-4px); /* Tactile slide for RTL */
+}
+
+.sidebar .list-group-item.active {
+    border: 1px solid transparent !important; /* Keep the 1px reserve */
+    background-color: rgba(35, 99, 195, 0.05) !important; /* Lighter soft blue */
+    color: var(--primal) !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 12px rgba(35, 99, 195, 0.08) !important;
+    transform: translateX(-4px);
+}
+
+.sidebar .list-group-item i,
+.sidebar .accordion-button i {
+    width: var(--sidebar-icon-width);
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.25rem;
+    transition: transform 0.2s ease, color 0.2s;
+    color: #8c98a4; /* Muted icon color by default */
+}
+
+.sidebar .list-group-item:hover i,
+.sidebar .list-group-item.active i,
+.sidebar .accordion-button:hover i, 
+.sidebar .accordion-button:not(.collapsed) i {
+    transform: scale(1.1);
+    color: var(--primal); /* Active/Hover icon color */
+}
+
+.sidebar .accordion-button {
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    color: #5a6474;
+    background-color: transparent !important;
+    border: 1px solid transparent !important; /* Reserve space here too */
+    border-radius: 12px !important;
+    margin: 4px 0;
+    padding: 12px var(--sidebar-item-px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.sidebar .accordion-button:focus {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.sidebar .accordion-button:not(.collapsed) {
+    background-color: rgba(35, 99, 195, 0.04) !important; /* Very subtle open state */
+    color: var(--primal) !important;
+    font-weight: 700 !important;
+}
+
+.sidebar .accordion-button:hover {
+    color: var(--primal) !important;
+    background-color: transparent !important;
+    transform: translateX(-4px);
+}
+
+.sidebar .accordion-item {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+.sidebar .accordion-body {
+    background-color: transparent !important;
+    border: none !important;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+
+.sidebar-toggle {
+    background-color: transparent;
+    color: #2c3e50;
+    border: none;
+    transition: background-color 0.3s, transform 0.1s;
+    min-width: 5vh;
+    min-height: 5vh;
+    font-size: 1.5rem;
+}
+
+.sidebar-toggle:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+.sidebar-toggle:active {
+    transform: scale(0.95);
+}
+
+.tooltip-custom .tooltip-inner {
+    font-size: 1.2rem;
+    background-color: var(--title);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+}
+
+.sidebar-toolbar {
+    padding: 10px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: transparent;
+    pointer-events: none; /* Let clicks pass through to content if needed, but we override for items */
+    display: flex;
+    justify-content: flex-end
+}

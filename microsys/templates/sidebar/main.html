@@ -1,0 +1,133 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'sidebar/sidebar.css' %}">
+<link rel="stylesheet" href="{% static 'sidebar/css/theme_picker.css' %}">
+<link rel="stylesheet" href="{% static 'sidebar/css/reorder.css' %}">
+<script src="{% static 'sidebar/sidebar.js' %}" nonce="{{ request.csp_nonce }}" defer></script>
+<script src="{% static 'sidebar/js/theme_picker.js' %}" nonce="{{ request.csp_nonce }}" defer></script>
+<script src="{% static 'sidebar/js/reorder.js' %}" nonce="{{ request.csp_nonce }}" defer></script>
+<!-- Ghost Sidebar for small screens layout stability -->
+{% if request.user.is_authenticated %}
+<!-- <div class="sidebar-ghost"></div> -->
+
+<!-- sidebar.html -->
+<div class="col-2 flex-column shadow-sm sidebar {% if request.session.sidebarCollapsed %}collapsed{% endif %} no-print" 
+     id="sidebar" 
+     data-toggle-url="{% url 'toggle_sidebar' %}"
+     data-session-collapsed="{{ request.session.sidebarCollapsed|yesno:'true,false' }}">
+    <script nonce="{{ request.csp_nonce }}">
+        // Immediate FOUC fix for small screens
+        (function() {
+            var screenWidth = window.innerWidth;
+            var sidebar = document.currentScript.parentElement;
+            if (screenWidth < 1100) {
+                sidebar.classList.add('collapsed');
+                // Temporarily disable transition to avoid "sliding shut" flicker on load
+                sidebar.style.transition = 'none';
+                setTimeout(function() { sidebar.style.transition = ''; }, 100);
+            }
+        })();
+    </script>
+    <div class="list-group flex-shrink-0">
+        {% block items %}
+        
+        <!-- DEFAULT CONTENT / INSTRUCTIONS -->
+        <!-- <div class="p-3 text-center text-muted">
+            <i class="bi bi-info-circle mb-2" style="font-size: 24px;"></i>
+            <p class="small">
+                <strong>Default Sidebar</strong><br>
+                To customize this menu, create a template extending:<br>
+                <code>sidebar/main.html</code><br>
+                and override the <code>items</code> block.
+            </p>
+        </div> -->
+
+        <!-- <a href="#" class="list-group-item list-group-item-action">
+            <i class="bi bi-house me-2" style="font-size: 24px;"></i>
+            <span>Example Home</span>
+        </a> -->
+        
+        {% endblock %}
+    </div>
+    <script nonce="{{ request.csp_nonce }}">
+        // Immediate order restore to prevent FOUC - runs before browser paint
+        (function() {
+            var STORAGE_KEY_AUTO = 'sidebar_auto_order';
+            var STORAGE_KEY_PREFIX_EXTRA = 'sidebar_extra_';
+            
+            function restoreContainer(container, storageKey) {
+                var saved;
+                try {
+                    saved = localStorage.getItem(storageKey);
+                    if (!saved) return;
+                    saved = JSON.parse(saved);
+                } catch(e) { return; }
+                if (!Array.isArray(saved) || saved.length === 0) return;
+                
+                var items = container.querySelectorAll(':scope > .list-group-item[data-url-name]');
+                var itemMap = {};
+                for (var i = 0; i < items.length; i++) {
+                    itemMap[items[i].dataset.urlName] = items[i];
+                }
+                for (var j = 0; j < saved.length; j++) {
+                    var item = itemMap[saved[j]];
+                    if (item) {
+                        container.appendChild(item);
+                        delete itemMap[saved[j]];
+                    }
+                }
+                for (var key in itemMap) {
+                    container.appendChild(itemMap[key]);
+                }
+            }
+            
+            function slugify(text) {
+                return text.toString().toLowerCase().trim()
+                    .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-');
+            }
+            
+            // Restore auto items
+            var autoContainer = document.getElementById('sidebarAutoItems');
+            if (autoContainer) {
+                restoreContainer(autoContainer, STORAGE_KEY_AUTO);
+            }
+            
+            // Restore extra groups
+            var accordionBodies = document.querySelectorAll('.sidebar .accordion-body');
+            for (var k = 0; k < accordionBodies.length; k++) {
+                var body = accordionBodies[k];
+                var groupName = body.dataset.groupName;
+                if (!groupName) {
+                    var btn = body.closest('.accordion-item');
+                    if (btn) {
+                        var span = btn.querySelector('.accordion-button span');
+                        if (span) groupName = span.textContent.trim();
+                    }
+                }
+                if (groupName) {
+                    restoreContainer(body, STORAGE_KEY_PREFIX_EXTRA + slugify(groupName));
+                }
+            }
+            
+            window._sidebarOrderRestored = true;
+        })();
+    </script>
+
+    <!-- Sidebar Toolbar (Theme Picker, Reorder, etc.) -->
+    <div class="sidebar-toolbar no-print">
+        <i class="bi bi-arrows-move reorder-toggle" id="sidebarReorderToggle" title="إعادة الترتيب"></i>
+        <i class="bi bi-chevron-up theme-arrow" id="sidebarThemeArrow"></i>
+        <div class="current-theme-indicator" id="sidebarThemeIndicator" title="تغيير المظهر"></div>
+        <div class="theme-popup" id="sidebarThemePopup">
+            <div class="small fw-bold mb-2 text-center border-bottom pb-1">اختر اللون</div>
+            <div class="theme-options-grid">
+                <div class="theme-option-circle theme-circle-light" data-theme="light" title="أبيض"></div>
+                <div class="theme-option-circle theme-circle-blue" data-theme="blue" title="ملكي"></div>
+                <div class="theme-option-circle theme-circle-gold" data-theme="gold" title="ذهبي"></div>
+                <div class="theme-option-circle theme-circle-green" data-theme="green" title="أخضر"></div>
+                <div class="theme-option-circle theme-circle-red" data-theme="red" title="أحمر"></div>
+                <div class="theme-option-circle theme-circle-dark" data-theme="dark" title="ليلي"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}

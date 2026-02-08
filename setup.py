@@ -4,15 +4,15 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="micro_users",
-    version="1.9.0",
+    name="microsys",
+    version="1.0.0",
     author="DeBeski",
     author_email="debeski1@gmail.com",
-    description="Arabic django user management app with abstract user, permissions, and activity logging",
+    description="micro (System Integration Services) - RTL Django Starter Pack, with Users Management, Permissions, Auto Section Management Page, and Activity Logging, and more.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/debeski/micro-users",
-    packages=["users"],
+    url="https://github.com/debeski/microsys",
+    packages=["microsys"],
     include_package_data=True,
     classifiers=[
         "Framework :: Django",

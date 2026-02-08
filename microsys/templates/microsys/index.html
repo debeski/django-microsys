@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'main/css/index_cards.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="text-center mb-5">
+        <img src="{{ APP_CONFIG.logo_url|default:'/static/img/base_logo.webp' }}" alt="Logo" class="mb-4" style="max-height: 120px;">
+        <h1 class="display-4 fw-bold">{{ APP_CONFIG.name|default:"FineStor ERP" }}</h1>
+        {% if APP_CONFIG.description %}
+            <p class="lead text-muted">{{ APP_CONFIG.description }}</p>
+        {% else %}
+            <p class="lead text-muted">مرحباً بك في نظام إدارة الموارد المتكامل</p>
+        {% endif %}
+        
+        {% if user.scope %}
+            <div class="mt-3">
+                <span class="badge bg-primary fs-6">نطاق العمل: {{ user.scope.name }}</span>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- Dashboard Widgets or Quick Links -->
+        <div class="col-md-4 col-lg-3">
+            <div class="dashboard-card position-relative">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-primary bg-gradient text-white rounded-circle mb-3 mx-auto" style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h5 class="card-title">إدارة المستخدمين</h5>
+                    <p class="card-text text-muted small">إدارة حسابات المستخدمين والصلاحيات.</p>
+                    <a href="{% url 'manage_users' %}" class="btn btn-outline-primary rounded-pill px-4">الذهاب</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="dashboard-card position-relative">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-success bg-gradient text-white rounded-circle mb-3 mx-auto" style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                        <i class="bi bi-diagram-3"></i>
+                    </div>
+                    <h5 class="card-title">إدارة الأقسام</h5>
+                    <p class="card-text text-muted small">هيكلة الأقسام والجهات والوحدات الإدارية.</p>
+                    <a href="{% url 'manage_sections' %}" class="btn btn-outline-success rounded-pill px-4">الذهاب</a>
+                </div>
+            </div>
+        </div>
+
+        {% if user.is_staff %}
+        <div class="col-md-4 col-lg-3">
+            <div class="dashboard-card position-relative">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-info bg-gradient text-white rounded-circle mb-3 mx-auto" style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <h5 class="card-title">سجل النشاط</h5>
+                    <p class="card-text text-muted small">متابعة نشاطات المستخدمين والتغييرات.</p>
+                    <a href="{% url 'user_activity_log' %}" class="btn btn-outline-info rounded-pill px-4">الذهاب</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="col-md-4 col-lg-3">
+            <div class="dashboard-card position-relative">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-secondary bg-gradient text-white rounded-circle mb-3 mx-auto" style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                        <i class="bi bi-gear"></i>
+                    </div>
+                    <h5 class="card-title">الإعدادات</h5>
+                    <p class="card-text text-muted small">خيارات النظام ومعلومات النسخة.</p>
+                    <a href="{% url 'options_view' %}" class="btn btn-outline-secondary rounded-pill px-4">الذهاب</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
