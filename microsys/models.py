@@ -1,8 +1,8 @@
 # Imports of the required python modules and libraries
 ######################################################
 from django.db import models
-# from django.contrib.auth.models import AbstractUser
-from django.conf import settings  # Use this to reference the custom user model
+from django.conf import settings
+from .managers import ScopedManager
 
 
 class Scope(models.Model):
@@ -14,6 +14,8 @@ class Scope(models.Model):
     class Meta:
         verbose_name = "نطاق"
         verbose_name_plural = "النطاقات"
+
+
 class ScopeSettings(models.Model):
     is_enabled = models.BooleanField(default=False, verbose_name="تفعيل النطاقات")
 
@@ -33,13 +35,34 @@ class ScopeSettings(models.Model):
     def __str__(self):
         return "إعدادات النطاق"
 
-from .managers import ScopedManager
+
+class ScopeForeignKey(models.ForeignKey):
+    """
+    ForeignKey that hides itself from ModelForms when scopes are disabled.
+    Keeps schema identical to a normal ForeignKey.
+    """
+
+    def formfield(self, **kwargs):
+        try:
+            from .utils import is_scope_enabled
+            if not is_scope_enabled():
+                return None
+        except Exception:
+            pass
+        return super().formfield(**kwargs)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        # Treat as a normal ForeignKey in migrations to avoid churn.
+        path = "django.db.models.ForeignKey"
+        return name, path, args, kwargs
+
 
 class ScopedModel(models.Model):
     """
     Abstract base class for models that should be isolated by Scope.
     """
-    scope = models.ForeignKey('Scope', on_delete=models.PROTECT, null=True, blank=True, verbose_name="النطاق")
+    scope = ScopeForeignKey('microsys.Scope', on_delete=models.PROTECT, null=True, blank=True, verbose_name="النطاق")
     
     objects = ScopedManager()
 
@@ -47,10 +70,9 @@ class ScopedModel(models.Model):
         abstract = True
 
 
-class Profile(models.Model):
+class Profile(ScopedModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile', verbose_name="المستخدم")
     phone = models.CharField(max_length=15, blank=True, null=True, verbose_name="رقم الهاتف")
-    scope = models.ForeignKey('Scope', on_delete=models.PROTECT, null=True, blank=True, verbose_name="النطاق")
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الحذف")
 
@@ -65,10 +87,11 @@ class Profile(models.Model):
         verbose_name = "ملف المستخدم"
         verbose_name_plural = "ملفات المستخدمين"
         permissions = [
-            ("manage_staff", "صلاحية إنشاء مسؤول"),
+            ("manage_staff", "صلاحيات مستخدم مسؤول"),
         ]
 
-class UserActivityLog(models.Model):
+
+class UserActivityLog(ScopedModel):
     ACTION_TYPES = [
         ('LOGIN', 'تسجيل دخـول'),
         ('LOGOUT', 'تسجيل خـروج'),
@@ -97,3 +120,16 @@ class UserActivityLog(models.Model):
     class Meta:
         verbose_name = "حركة سجل"
         verbose_name_plural = "حركات السجل"
+        permissions = [
+            ("view_activity_log", "عرض سجل النشاط"),
+        ]
+
+class Section(models.Model):
+    """Dummy Model for section permissions."""
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = [
+            ("view_sections", "عرض الاقسام"),
+            ("manage_sections", "إدارة الاقسام"),
+        ]

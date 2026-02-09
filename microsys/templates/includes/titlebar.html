@@ -5,11 +5,11 @@
         {% if request.user.is_authenticated %}
             <button id="sidebarToggle" class="sidebar-toggle ms-2 rounded flex-shrink-0">☰</button>
         {% endif %}
-        <a class="align-items-center d-flex text-decoration-none text-inherit w-100" href="{% if user.is_authenticated %}{% url 'index' %}{% else %}/{% endif %}" style="min-width: 0;">
+        <a class="align-items-center d-flex text-decoration-none text-inherit w-100" href="{% if user.is_authenticated %}{{ APP_CONFIG.home_url }}{% else %}/{% endif %}" style="min-width: 0;">
             <img src="{{ APP_CONFIG.logo_url|default:'/static/img/base_logo.webp' }}" alt="Logo" class="flex-shrink-0">
             <!-- Responsive Title with Smart Truncation -->
             <p class="ms-2 mb-0 align-items-center d-flex text-truncate" style="flex-shrink: 1; min-width: 0;">
-                <span class="text-truncate">{{ APP_CONFIG.name|default:"FineStor ERP" }}{% if user.scope %} - {{ user.scope.name }}{% endif %}</span>
+                <span class="text-truncate">{{ APP_CONFIG.name|default:"microSYS" }}{% if user.scope %} - {{ user.scope.name }}{% endif %}</span>
                 &nbsp;&nbsp;{% block header %}{% endblock %}
             </p>
         </a>

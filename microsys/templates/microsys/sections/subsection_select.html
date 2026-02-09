@@ -1,15 +1,24 @@
 {% load static %}
 <!-- Generic Subsection Selection Checkboxes with Context Menu -->
-<!-- Expects 'form' in context with a 'sub_affiliates' field -->
+<!-- Expects 'field', 'locked_ids', 'parent_model', 'child_model', 'add_url', 'edit_url_template', 'delete_url_template' -->
 
 <!-- Include CSS -->
 <link rel="stylesheet" href="{% static 'sections/css/context_menu.css' %}">
 
-<div class="d-flex flex-wrap gap-2 my-3" role="group" aria-label="الأقسام التابعة">
-  {% for checkbox in form.sub_affiliates %}
+<div class="d-flex align-items-center gap-2 mt-2 mb-1">
+  <h6 class="mb-0">الأقسام الفرعية</h6>
+  <span class="text-muted subsection-help" data-bs-toggle="tooltip"
+        title="للتعديل أو الحذف: اضغط بزر الفأرة الأيمن على القسم، أو اضغط مطولاً على الهاتف"
+        role="img" aria-label="مساعدة">
+      <i class="bi bi-question-circle"></i>
+  </span>
+</div>
+
+<div class="d-flex flex-wrap gap-2 my-3" role="group" aria-label="الأقسام الفرعية">
+  {% for checkbox in field %}
     {% with checkbox_id=checkbox.id_for_label %}
     {# Check if the current choice is in the locked list #}
-    {% if checkbox.data.value|stringformat:"s" in form.locked_ids %}
+    {% if checkbox.data.value|stringformat:"s" in locked_ids %}
         <div class="position-relative d-inline-block">
             <input type="checkbox" name="{{ checkbox.data.name }}" value="{{ checkbox.data.value }}" class="btn-check" id="{{ checkbox_id }}" checked disabled>
             <label class="btn btn-outline-secondary opacity-75 subsection-checkbox-label" 
@@ -42,13 +51,19 @@
     {% endif %}
     {% endwith %}
   {% empty %}
-    <span class="text-muted">لا توجد أقسام فرعية</span>
+    <span class="text-muted subsection-empty">لا توجد أقسام فرعية</span>
   {% endfor %}
 
   {# Add New Subsection Button - Triggers Inline Input #}
   <button type="button" class="btn btn-outline-primary add-subsection-btn" 
-          data-parent-model="affiliate" 
-          data-child-model="subaffiliate"
+          data-parent-model="{{ parent_model }}" 
+          data-child-model="{{ child_model }}"
+          data-parent-id="{{ parent_id }}"
+          data-parent-field="{{ parent_field }}"
+          data-field-name="{{ field.html_name }}"
+          data-add-url="{{ add_url }}"
+          data-edit-url-template="{{ edit_url_template }}"
+          data-delete-url-template="{{ delete_url_template }}"
           data-csrf="{{ csrf_token }}">
       <i class="bi bi-plus-lg"></i>
   </button>
@@ -70,3 +85,11 @@
 
 <!-- Include JS -->
 <script src="{% static 'sections/js/context_menu.js' %}"></script>
+<script>
+  (function() {
+    if (!window.bootstrap || !window.bootstrap.Tooltip) return;
+    document.querySelectorAll('.subsection-help[data-bs-toggle="tooltip"]').forEach(function(el) {
+      bootstrap.Tooltip.getOrCreateInstance(el, { container: 'body' });
+    });
+  })();
+</script>

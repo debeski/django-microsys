@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const isChecked = this.checked;
             const card = this.closest('.permissions-card');
             card.querySelectorAll('.permission-checkbox, .model-master-checkbox').forEach(cb => {
+                if (cb.disabled) return;
                 cb.checked = isChecked;
                 cb.indeterminate = false;
             });
@@ -41,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const isChecked = this.checked;
             const modelGroup = this.closest('.model-group');
             modelGroup.querySelectorAll('.permission-checkbox').forEach(cb => {
+                if (cb.disabled) return;
                 cb.checked = isChecked;
             });
             updateAppMasterStatus(this.closest('.permissions-card'));
@@ -59,8 +61,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateModelMasterStatus(modelGroup) {
         const master = modelGroup.querySelector('.model-master-checkbox');
-        const children = modelGroup.querySelectorAll('.permission-checkbox');
-        const checkedCount = Array.from(children).filter(c => c.checked).length;
+        const children = Array.from(modelGroup.querySelectorAll('.permission-checkbox')).filter(c => !c.disabled);
+        const checkedCount = children.filter(c => c.checked).length;
 
         master.checked = checkedCount === children.length && children.length > 0;
         master.indeterminate = checkedCount > 0 && checkedCount < children.length;
@@ -68,8 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateAppMasterStatus(card) {
         const master = card.querySelector('.app-master-checkbox');
-        const children = card.querySelectorAll('.permission-checkbox');
-        const checkedCount = Array.from(children).filter(c => c.checked).length;
+        const children = Array.from(card.querySelectorAll('.permission-checkbox')).filter(c => !c.disabled);
+        const checkedCount = children.filter(c => c.checked).length;
 
         master.checked = checkedCount === children.length && children.length > 0;
         master.indeterminate = checkedCount > 0 && checkedCount < children.length;

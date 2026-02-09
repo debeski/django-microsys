@@ -30,14 +30,21 @@ def _process_extra_items(config, request):
         for item in group_config.get('items', []):
             url_name = item.get('url_name', '')
             
-            # Check permission if specified
+            # Check permission if specified (supports string or list/tuple/set)
             permission = item.get('permission')
             if permission:
-                if permission == 'is_staff' and not request.user.is_staff:
-                    continue
-                elif permission == 'is_superuser' and not request.user.is_superuser:
-                    continue
-                elif permission not in ['is_staff', 'is_superuser'] and not request.user.has_perm(permission):
+                perms = permission if isinstance(permission, (list, tuple, set)) else [permission]
+                allowed = False
+                for perm in perms:
+                    if perm == 'is_staff':
+                        allowed = request.user.is_staff
+                    elif perm == 'is_superuser':
+                        allowed = request.user.is_superuser
+                    else:
+                        allowed = request.user.has_perm(perm)
+                    if allowed:
+                        break
+                if not allowed:
                     continue
             
             # Resolve URL
@@ -80,13 +87,15 @@ def microsys_context(request):
     # Default configuration
     default_config = {
         'name': 'microsys',
-        'verbose_name': 'النظام',
-        'logo': '/static/microsys/img/logo.png',
-        'favicon': '/static/microsys/img/favicon.ico',
+        'verbose_name': 'ادارة النظام',
+        'logo': '/static/img/base_logo.png',
+        'login_logo': '/static/img/login_logo.webp',
+        'favicon': '/static/favicon.ico',
+        'home_url': '/sys/',  # Default home link in titlebar
     }
     
     # Get user config from settings.py
-    user_config = getattr(settings, 'MICRO_USERS_CONFIG', {})
+    user_config = getattr(settings, 'MICROSYS_CONFIG', {})
     
     # Merge configurations
     final_config = default_config.copy()

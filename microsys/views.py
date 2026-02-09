@@ -22,7 +22,13 @@ import psutil
 import platform
 import sys
 import django
+import inspect
 from django.urls import reverse
+from django import forms
+from django.core.exceptions import FieldDoesNotExist
+from django.db import models as dj_models
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit
 
 # Project imports
 #################
@@ -31,9 +37,86 @@ from .signals import get_client_ip
 from .tables import UserTable
 from .forms import CustomUserCreationForm, CustomUserChangeForm, ArabicPasswordChangeForm, ResetPasswordForm, UserProfileEditForm
 from .filters import UserFilter
-from .utils import is_scope_enabled
+from .utils import is_scope_enabled, discover_section_models, resolve_model_by_name, resolve_form_class_for_model, has_related_records
 
 User = get_user_model() # Use custom user model
+
+def _get_m2m_through_defaults(model, field_name, request):
+    """
+    Provide through_defaults for M2M relations when the through model is scoped.
+    This prevents relations from disappearing when scope filtering is enabled.
+    """
+    try:
+        field = model._meta.get_field(field_name)
+    except FieldDoesNotExist:
+        return None
+
+    if not getattr(field, "many_to_many", False):
+        return None
+
+    through = field.remote_field.through
+    if not through:
+        return None
+
+    defaults = {}
+    if is_scope_enabled():
+        scope = None
+        if hasattr(request.user, 'profile') and getattr(request.user.profile, 'scope', None):
+            scope = request.user.profile.scope
+        elif hasattr(request.user, 'scope') and getattr(request.user, 'scope', None):
+            scope = request.user.scope
+        if scope:
+            try:
+                through._meta.get_field('scope')
+                defaults['scope'] = scope
+            except Exception:
+                pass
+
+    return defaults or None
+
+def _create_minimal_instance_from_post(model, data, request):
+    """
+    Fallback: create a minimal instance from POST data when a simple
+    inline add is used (e.g., just a `name` field).
+    Only proceeds if all required concrete fields are present.
+    """
+    field_map = {}
+    missing_required = []
+
+    for field in model._meta.fields:
+        if field.primary_key or field.auto_created:
+            continue
+        if getattr(field, "auto_now", False) or getattr(field, "auto_now_add", False):
+            continue
+        if field.has_default() or field.blank or field.null:
+            continue
+
+        if field.name not in data:
+            missing_required.append(field.name)
+
+    if missing_required:
+        return None, missing_required
+
+    for field in model._meta.fields:
+        if field.primary_key or field.auto_created:
+            continue
+        if field.name in data:
+            if isinstance(field, dj_models.ForeignKey):
+                try:
+                    field_map[field.name] = field.remote_field.model.objects.get(pk=data[field.name])
+                except Exception:
+                    return None, [field.name]
+            else:
+                field_map[field.name] = data[field.name]
+
+    instance = model(**field_map)
+    if hasattr(instance, 'created_by'):
+        instance.created_by = request.user
+    if is_scope_enabled() and hasattr(instance, 'scope') and not getattr(instance, 'scope', None):
+        if hasattr(request.user, 'profile') and request.user.profile.scope:
+            instance.scope = request.user.profile.scope
+    instance.save()
+    return instance, []
 
 # Helper Function to log actions
 def log_user_action(request, instance, action, model_name):
@@ -53,14 +136,14 @@ def log_user_action(request, instance, action, model_name):
 
 # Index/Dashboard View
 @login_required
-def index(request):
+def dashboard(request):
     """
     Dashboard/Landing page that reflects dynamic branding.
     """
     context = {
         'current_time': timezone.now(),
     }
-    return render(request, 'microsys/index.html', context)
+    return render(request, 'microsys/dashboard.html', context)
 
 # Custom Login View with Theme Injection
 class CustomLoginView(LoginView):
@@ -245,6 +328,12 @@ class UserActivityLogView(LoginRequiredMixin, UserPassesTestMixin, SingleTableMi
     def get_queryset(self):
         # Order by timestamp descending by default
         qs = super().get_queryset().order_by('-timestamp')
+        if not is_scope_enabled():
+            try:
+                self.model._meta.get_field('scope')
+                qs = qs.defer('scope')
+            except FieldDoesNotExist:
+                pass
         if not self.request.user.is_superuser:
             qs = qs.exclude(user__is_superuser=True)
             if hasattr(self.request.user, 'profile') and self.request.user.profile.scope:
@@ -481,7 +570,7 @@ def core_models_view(request):
     Uses ?model= query param with session fallback for tab persistence.
     """
     # Discover section models dynamically
-    section_models = discover_section_models(app_name='main', include_children=False)
+    section_models = discover_section_models(app_name=None, include_children=False)
     
     # Build map for easy lookup
     models_map = {sm['model_name']: sm for sm in section_models}
@@ -526,8 +615,19 @@ def core_models_view(request):
         except selected_model.DoesNotExist:
             instance = None
     
+    subsection_field_names = set()
+
     # Create form
     form = FormClass(request.POST or None, instance=instance)
+    if not hasattr(form, "helper") or form.helper is None:
+        form.helper = FormHelper()
+        form.helper.form_tag = False
+        form.helper.add_input(Submit("submit", "حفظ", css_class="btn btn-primary rounded-pill"))
+        form._auto_helper = True
+    else:
+        form.helper.form_tag = False
+        if not getattr(form.helper, "inputs", None):
+            form.helper.add_input(Submit("submit", "حفظ", css_class="btn btn-primary rounded-pill"))
     
     # Create filter and queryset
     queryset = selected_model.objects.all()
@@ -537,10 +637,105 @@ def core_models_view(request):
         queryset = filter_obj.qs
     
     # Create and configure table
-    table = TableClass(queryset, model_name=model_param)
+    try:
+        sig = inspect.signature(TableClass.__init__)
+        params = sig.parameters
+        accepts_model_name = (
+            "model_name" in params
+            or any(p.kind == p.VAR_KEYWORD for p in params.values())
+        )
+    except (TypeError, ValueError):
+        accepts_model_name = False
+
+    if accepts_model_name:
+        table = TableClass(queryset, model_name=model_param)
+    else:
+        table = TableClass(queryset)
+        if not hasattr(table, "model_name"):
+            table.model_name = model_param
     RequestConfig(request, paginate={'per_page': 10}).configure(table)
     
-    # Handle POST
+    # Handle Subsections (Child Models)
+    subsection_forms = []
+    subsection_selects = []
+    for sub in selected_data.get('subsections', []):
+        child_model_name = sub['model_name']
+        related_field = sub['related_field']
+        child_model = sub['model']
+
+        if related_field not in form.fields:
+            form.fields[related_field] = forms.ModelMultipleChoiceField(
+                queryset=child_model.objects.all(),
+                required=False,
+                label=sub['verbose_name_plural'],
+            )
+
+        form.fields[related_field].modal_target = f"addSubsectionModal_{child_model_name}"
+        form.fields[related_field].widget = forms.CheckboxSelectMultiple()
+
+        if instance:
+            try:
+                rel_manager = getattr(instance, related_field, None)
+                if rel_manager is not None:
+                    form.fields[related_field].initial = list(
+                        rel_manager.values_list('pk', flat=True)
+                    )
+            except Exception:
+                pass
+
+        locked_ids = []
+        if instance:
+            try:
+                rel_manager = getattr(instance, related_field, None)
+                if rel_manager is not None:
+                    accessor = None
+                    try:
+                        field_obj = selected_model._meta.get_field(related_field)
+                        accessor = field_obj.remote_field.get_accessor_name()
+                    except Exception:
+                        accessor = None
+
+                    ignore = [accessor] if accessor else []
+                    for child in rel_manager.all():
+                        if has_related_records(child, ignore_relations=ignore):
+                            locked_ids.append(str(child.pk))
+            except Exception:
+                locked_ids = []
+
+        subsection_selects.append({
+            'field': form[related_field],
+            'locked_ids': locked_ids,
+            'parent_model': model_param,
+            'parent_id': instance.pk if instance else '',
+            'parent_field': related_field,
+            'child_model': child_model_name,
+            'add_url': reverse('add_subsection'),
+            'edit_url_template': reverse('edit_subsection', args=[0]).replace('/0/', '/{id}/'),
+            'delete_url_template': reverse('delete_subsection', args=[0]).replace('/0/', '/{id}/'),
+        })
+        subsection_field_names.add(related_field)
+        
+        ChildForm = sub['form_class']
+        child_form_instance = ChildForm()
+        
+        # Override form action to generic add_subsection view
+        target_url = reverse('add_subsection')
+        if not hasattr(child_form_instance, 'helper') or child_form_instance.helper is None:
+             child_form_instance.helper = FormHelper()
+             child_form_instance.helper.form_tag = True
+        else:
+             child_form_instance.helper.form_tag = True
+        child_form_instance.helper.form_action = f"{target_url}?model={child_model_name}&parent={model_param}"
+        if not getattr(child_form_instance.helper, "inputs", None):
+             child_form_instance.helper.add_input(Submit("submit", "حفظ", css_class="btn btn-primary rounded-pill"))
+        
+        subsection_forms.append({
+            'name': child_model_name,
+            'verbose_name': sub['verbose_name'],
+            'form': child_form_instance
+        })
+
+    # Handle POST (after subsection fields are injected)
     if request.method == 'POST':
         if form.is_valid():
             saved_instance = form.save(commit=False)
@@ -552,31 +747,24 @@ def core_models_view(request):
             saved_instance.save()
             if hasattr(form, 'save_m2m'):
                 form.save_m2m()
+            for field_name in subsection_field_names:
+                if field_name in form.cleaned_data:
+                    try:
+                        rel_manager = getattr(saved_instance, field_name)
+                        through_defaults = _get_m2m_through_defaults(selected_model, field_name, request)
+                        if through_defaults:
+                            rel_manager.set(form.cleaned_data[field_name], through_defaults=through_defaults)
+                        else:
+                            rel_manager.set(form.cleaned_data[field_name])
+                    except Exception:
+                        pass
             return redirect('manage_sections')
-    
-    # Handle Subsections (Child Models)
-    subsection_forms = []
-    for sub in selected_data.get('subsections', []):
-        child_model_name = sub['model_name']
-        related_field = sub['related_field']
-        
-        # Link main form field to modal
-        if related_field in form.fields:
-             form.fields[related_field].modal_target = f"addSubsectionModal_{child_model_name}"
-        
-        ChildForm = sub['form_class']
-        child_form_instance = ChildForm()
-        
-        # Override form action to generic add_subsection view
-        if hasattr(child_form_instance, 'helper'):
-             target_url = reverse('add_subsection')
-             child_form_instance.helper.form_action = f"{target_url}?model={child_model_name}&parent={model_param}"
-        
-        subsection_forms.append({
-            'name': child_model_name,
-            'verbose_name': sub['verbose_name'],
-            'form': child_form_instance
-        })
+
+    if getattr(form, "_auto_helper", False) and subsection_field_names:
+        from crispy_forms.layout import Layout, Field
+        form.helper.layout = Layout(
+            *[Field(name, css_class="form-control") for name in form.fields if name not in subsection_field_names]
+        )
 
     # Build context
     context = {
@@ -596,6 +784,7 @@ def core_models_view(request):
         'ar_name': selected_data['verbose_name'],
         'ar_names': selected_data['verbose_name_plural'],
         'subsection_forms': subsection_forms,
+        'subsection_selects': subsection_selects,
     }
     
     return render(request, 'microsys/sections/manage_sections.html', context)
@@ -608,30 +797,21 @@ def add_subsection(request):
     """
     child_model_name = request.GET.get('model')
     parent_model_name = request.GET.get('parent')
+    parent_id = request.GET.get('parent_id')
+    parent_field = request.GET.get('parent_field')
     
     if not child_model_name:
          messages.error(request, "معرف القسم الفرعي مفقود.")
          return redirect('manage_sections')
 
     # Resolve child model class
-    try:
-        model = apps.get_model('main', child_model_name)
-    except LookupError:
+    model = resolve_model_by_name(child_model_name)
+    if not model:
         messages.error(request, "القسم الفرعي غير موجود.")
         return redirect('manage_sections')
         
-    # Resolve Form Class (same logic as discover, or simpler lookup)
-    # We can reuse discover logic or just try import
-    form_path = f"main.forms.{model.__name__}Form"
-    try:
-        form_class = import_string(form_path)
-    except (ImportError, ValueError):
-         if hasattr(model, 'get_form_class'):
-             try: form_class = import_string(model.get_form_class())
-             except: pass
-         else:
-             from django.forms import modelform_factory
-             form_class = modelform_factory(model, fields='__all__')
+    # Resolve Form Class (consistent with discovery logic)
+    form_class = resolve_form_class_for_model(model)
     
     if request.method == 'POST':
         form = form_class(request.POST)
@@ -639,7 +819,27 @@ def add_subsection(request):
             instance = form.save(commit=False)
             if hasattr(instance, 'created_by'):
                  instance.created_by = request.user
+            if is_scope_enabled() and hasattr(instance, 'scope') and not getattr(instance, 'scope', None):
+                 if hasattr(request.user, 'profile') and request.user.profile.scope:
+                     instance.scope = request.user.profile.scope
             instance.save()
+
+            if parent_model_name and parent_id and parent_field:
+                try:
+                    parent_model = resolve_model_by_name(parent_model_name)
+                    if parent_model:
+                        parent_instance = parent_model.objects.get(pk=parent_id)
+                        try:
+                            rel_manager = getattr(parent_instance, parent_field)
+                            through_defaults = _get_m2m_through_defaults(parent_model, parent_field, request)
+                            if through_defaults:
+                                rel_manager.add(instance, through_defaults=through_defaults)
+                            else:
+                                rel_manager.add(instance)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
             
             # AJAX Response
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -647,9 +847,36 @@ def add_subsection(request):
                 
             messages.success(request, f"تم إضافة {model._meta.verbose_name}: {instance}")
         else:
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                 return JsonResponse({'success': False, 'error': form.errors.as_text()})
-            messages.error(request, f"خطأ في إضافة {model._meta.verbose_name}.")
+            # Fallback for inline add when only a simple field (e.g. name) is provided
+            instance, missing = _create_minimal_instance_from_post(model, request.POST, request)
+            if instance:
+                if parent_model_name and parent_id and parent_field:
+                    try:
+                        parent_model = resolve_model_by_name(parent_model_name)
+                        if parent_model:
+                            parent_instance = parent_model.objects.get(pk=parent_id)
+                            try:
+                                rel_manager = getattr(parent_instance, parent_field)
+                                through_defaults = _get_m2m_through_defaults(parent_model, parent_field, request)
+                                if through_defaults:
+                                    rel_manager.add(instance, through_defaults=through_defaults)
+                                else:
+                                    rel_manager.add(instance)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'success': True, 'id': instance.pk, 'name': str(instance)})
+                messages.success(request, f"تم إضافة {model._meta.verbose_name}: {instance}")
+            else:
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                     err = form.errors.as_text()
+                     if missing:
+                         err = f"Missing required fields: {', '.join(missing)}"
+                     return JsonResponse({'success': False, 'error': err})
+                messages.error(request, f"خطأ في إضافة {model._meta.verbose_name}.")
     
     # Redirect back to parent tab
     redirect_url = reverse('manage_sections')
@@ -668,20 +895,18 @@ def edit_subsection(request, pk):
     child_model_name = request.GET.get('model', 'subaffiliate')
     parent_model_name = request.GET.get('parent', 'affiliate')
     
+    model = resolve_model_by_name(child_model_name)
+    if not model:
+        messages.error(request, "القسم الفرعي غير موجود.")
+        return redirect('manage_sections')
     try:
-        model = apps.get_model('main', child_model_name)
         instance = model.objects.get(pk=pk)
-    except (LookupError, model.DoesNotExist):
+    except model.DoesNotExist:
         messages.error(request, "القسم الفرعي غير موجود.")
         return redirect('manage_sections')
     
-    # Resolve Form Class
-    form_path = f"main.forms.{model.__name__}Form"
-    try:
-        form_class = import_string(form_path)
-    except (ImportError, ValueError):
-        from django.forms import modelform_factory
-        form_class = modelform_factory(model, fields='__all__')
+    # Resolve Form Class (consistent with discovery logic)
+    form_class = resolve_form_class_for_model(model)
     
     if request.method == 'POST':
         form = form_class(request.POST, instance=instance)
@@ -717,10 +942,13 @@ def delete_subsection(request, pk):
     child_model_name = request.GET.get('model', 'subaffiliate')
     parent_model_name = request.GET.get('parent', 'affiliate')
     
+    model = resolve_model_by_name(child_model_name)
+    if not model:
+        messages.error(request, "القسم الفرعي غير موجود.")
+        return redirect('manage_sections')
     try:
-        model = apps.get_model('main', child_model_name)
         instance = model.objects.get(pk=pk)
-    except (LookupError, model.DoesNotExist):
+    except model.DoesNotExist:
         messages.error(request, "القسم الفرعي غير موجود.")
         return redirect('manage_sections')
     
@@ -818,5 +1046,3 @@ def options_view(request):
         'disk_percent': disk_percent,
     }
     return render(request, 'options.html', context)
-
-

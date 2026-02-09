@@ -16,9 +16,65 @@ from django.forms.widgets import ChoiceWidget
 
 User = get_user_model()
 
+def _attach_is_staff_permission(form, widget_id=None):
+    perm_field = form.fields.get('permissions')
+    staff_field = form.fields.get('is_staff')
+    if not perm_field or not staff_field:
+        return
+    if not isinstance(perm_field.widget, GroupedPermissionWidget):
+        return
+
+    try:
+        app_config = apps.get_app_config('microsys')
+        app_name = app_config.verbose_name
+    except LookupError:
+        app_name = 'microsys'
+
+    current_value = False
+    if getattr(form, 'instance', None) is not None and getattr(form.instance, 'pk', None):
+        current_value = bool(getattr(form.instance, 'is_staff', False))
+    elif 'is_staff' in form.initial:
+        current_value = bool(form.initial.get('is_staff'))
+    else:
+        current_value = bool(getattr(staff_field, 'initial', False))
+
+    field_id = widget_id or 'id_permissions'
+    option_id = f"{field_id}_is_staff"
+
+    option = {
+        'name': 'is_staff',
+        'value': 'on',
+        'label': staff_field.label or "مسؤول",
+        'selected': current_value,
+        'help_text': staff_field.help_text,
+        'attrs': {
+            'id': option_id,
+            'data_action': 'other',
+            'data_model': 'staff',
+            'disabled': bool(getattr(staff_field, 'disabled', False)),
+        }
+    }
+
+    perm_field.widget.add_extra_group(
+        app_label='microsys',
+        app_name=app_name,
+        model_key='staff_access',
+        model_name='صلاحيات الإدارة',
+        option=option,
+    )
+
 class GroupedPermissionWidget(ChoiceWidget):
     template_name = 'microsys/users/grouped_permissions.html'
     allow_multiple_selected = True
+
+    def add_extra_group(self, app_label, app_name, model_key, model_name, option):
+        if not hasattr(self, 'extra_groups') or self.extra_groups is None:
+            self.extra_groups = {}
+        group = self.extra_groups.setdefault(app_label, {'name': app_name, 'models': {}})
+        if app_name and not group.get('name'):
+            group['name'] = app_name
+        model_group = group['models'].setdefault(model_key, {'name': model_name, 'permissions': []})
+        model_group['permissions'].append(option)
 
     def value_from_datadict(self, data, files, name):
         if hasattr(data, 'getlist'):
@@ -50,20 +106,25 @@ class GroupedPermissionWidget(ChoiceWidget):
             codename = perm.codename
 
             # --- Mapping manage_staff to auth.Permission UI ---
-            if app_label == 'microsys' and codename == 'manage_staff':
-                app_label = 'auth'
-                model_name = 'permission'
+            # if app_label == 'microsys' and codename == 'manage_staff':
+            #     app_label = 'auth'
+            #     model_name = 'permission'
+            # # --- Mapping manage_sections to auth.Permission UI ---
+            # if app_label == 'microsys' and codename == 'manage_sections':
+            #     app_label = 'auth'
+            #     model_name = 'section'
             # -------------------------------------------------
-
             # Use real verbose name from model class if available
-            if app_label == 'auth' and model_name == 'permission':
-                model_verbose_name = "الصلاحيات"
+            if app_label == 'microsys' and model_name == 'profile':
+                model_verbose_name = "إدارة المستخدمين"
+            # elif app_label == 'auth' and model_name == 'section':
+            #     model_verbose_name = "إدارة الأقسام الفرعية"
+            # else:
+            model_class = perm.content_type.model_class()
+            if model_class:
+                model_verbose_name = str(model_class._meta.verbose_name)
             else:
-                model_class = perm.content_type.model_class()
-                if model_class:
-                    model_verbose_name = str(model_class._meta.verbose_name)
-                else:
-                    model_verbose_name = perm.content_type.name
+                model_verbose_name = perm.content_type.name
             
             # Fetch verbose app name
             try:
@@ -115,6 +176,34 @@ class GroupedPermissionWidget(ChoiceWidget):
                 model_data['permissions'].sort(
                     key=lambda x: action_order.get(x['attrs']['data_action'], 99)
                 )
+
+        extra_groups = getattr(self, 'extra_groups', None)
+        if isinstance(extra_groups, dict):
+            for app_label, app_data in extra_groups.items():
+                if app_label not in grouped_perms:
+                    grouped_perms[app_label] = {
+                        'name': app_data.get('name', app_label.title()),
+                        'models': {},
+                    }
+
+                target_app = grouped_perms[app_label]
+                if app_data.get('name'):
+                    target_app['name'] = app_data['name']
+
+                for model_name, model_data in app_data.get('models', {}).items():
+                    target_model = target_app['models'].setdefault(
+                        model_name,
+                        {'name': model_data.get('name', model_name), 'permissions': []}
+                    )
+
+                    existing_ids = {
+                        p.get('attrs', {}).get('id') for p in target_model['permissions']
+                    }
+                    for option in model_data.get('permissions', []):
+                        opt_id = option.get('attrs', {}).get('id')
+                        if opt_id and opt_id in existing_ids:
+                            continue
+                        target_model['permissions'].append(option)
             
         context['widget']['grouped_perms'] = grouped_perms
         return context
@@ -130,7 +219,7 @@ class GroupedPermissionWidget(ChoiceWidget):
 # Custom User Creation form layout
 class CustomUserCreationForm(UserCreationForm):
     # Added fields from Profile
-    phone = forms.CharField(max_length=10, required=False, label="رقم الهاتف", help_text="أدخل رقم الهاتف الصحيح بالصيغة الاتية 09XXXXXXXX")
+    phone = forms.CharField(max_length=10, required=False, label="رقم الهاتف", help_text="أدخل رقم الهاتف الصحيح بالصيغة الاتية 09XXXXXXXX (اختياري)")
     scope = forms.ModelChoiceField(queryset=None, required=False, label="النطاق")
     
     permissions = forms.ModelMultipleChoiceField(
@@ -191,18 +280,19 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields["email"].label = "البريد الإلكتروني"
         self.fields["first_name"].label = "الاسم"
         self.fields["last_name"].label = "اللقب"
-        self.fields["is_staff"].label = "صلاحيات انشاء و تعديل المستخدمين (مسؤول)"
+        self.fields["is_staff"].label = "صلاحيات انشاء و تعديل المستخدمين"
         self.fields["password1"].label = "كلمة المرور"
         self.fields["password2"].label = "تأكيد كلمة المرور"
         self.fields["is_active"].label = "تفعيل الحساب"
 
         # Help Texts
         self.fields["username"].help_text = "اسم المستخدم يجب أن يكون فريدًا، 20 حرفًا أو أقل. فقط حروف، أرقام و @ . + - _"
-        self.fields["email"].help_text = "أدخل عنوان البريد الإلكتروني الصحيح"
-        self.fields["is_staff"].help_text = "يحدد ما إذا كان بإمكان المستخدم الوصول إلى قسم ادارة المستخدمين."
+        self.fields["email"].help_text = "أدخل عنوان البريد الإلكتروني الصحيح (اختياري)"
         self.fields["is_active"].help_text = "يحدد ما إذا كان يجب اعتبار هذا الحساب نشطًا."
         self.fields["password1"].help_text = "كلمة المرور يجب ألا تكون مشابهة لمعلوماتك الشخصية، وأن تحتوي على 8 أحرف على الأقل، وألا تكون شائعة أو رقمية بالكامل.."
         self.fields["password2"].help_text = "أدخل نفس كلمة المرور السابقة للتحقق."
+
+        _attach_is_staff_permission(self, self.fields['permissions'].widget.attrs.get('id'))
 
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -223,7 +313,6 @@ class CustomUserCreationForm(UserCreationForm):
             Row(Field("scope", css_class="form-control")),
             HTML("<hr>"),
             Field("permissions", css_class="col-12"),
-            "is_staff",
             "is_active",
             FormActions(
                 HTML(
@@ -265,7 +354,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 # Custom User Editing form layout
 class CustomUserChangeForm(UserChangeForm):
-    phone = forms.CharField(max_length=10, required=False, label="رقم الهاتف", help_text="أدخل رقم الهاتف الصحيح بالصيغة الاتية 09XXXXXXXX")
+    phone = forms.CharField(max_length=10, required=False, label="رقم الهاتف", help_text="أدخل رقم الهاتف الصحيح بالصيغة الاتية 09XXXXXXXX (اختياري)")
     scope = forms.ModelChoiceField(queryset=None, required=False, label="النطاق")
 
     permissions = forms.ModelMultipleChoiceField(
@@ -312,13 +401,12 @@ class CustomUserChangeForm(UserChangeForm):
         self.fields["email"].label = "البريد الإلكتروني"
         self.fields["first_name"].label = "الاسم الاول"
         self.fields["last_name"].label = "اللقب"
-        self.fields["is_staff"].label = "صلاحيات انشاء و تعديل المستخدمين (مسؤول)"
+        self.fields["is_staff"].label = "صلاحيات انشاء و تعديل المستخدمين"
         self.fields["is_active"].label = "الحساب مفعل"
         
         # Help Texts
         self.fields["username"].help_text = "اسم المستخدم يجب أن يكون فريدًا، 20 حرفًا أو أقل. فقط حروف، أرقام و @ . + - _"
-        self.fields["email"].help_text = "أدخل عنوان البريد الإلكتروني الصحيح"
-        self.fields["is_staff"].help_text = "يحدد ما إذا كان بإمكان المستخدم الوصول إلى قسم ادارة المستخدمين."
+        self.fields["email"].help_text = "أدخل عنوان البريد الإلكتروني الصحيح (اختياري)"
         self.fields["is_active"].help_text = "يحدد ما إذا كان يجب اعتبار هذا الحساب نشطًا. قم بإلغاء تحديد هذا الخيار بدلاً من الحذف."
 
         if user_instance:
@@ -354,6 +442,8 @@ class CustomUserChangeForm(UserChangeForm):
                 self.fields['is_staff'].disabled = True
                 self.fields['is_staff'].help_text = "ليس لديك صلاحية لتغيير وضع هذا المستخدم لمسؤول ."
 
+        _attach_is_staff_permission(self, self.fields['permissions'].widget.attrs.get('id'))
+
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.layout = Layout(
@@ -372,7 +462,6 @@ class CustomUserChangeForm(UserChangeForm):
             Row(Field("scope", css_class="form-control")),
             HTML("<hr>"),
             Field("permissions", css_class="col-12"),
-            "is_staff",
             "is_active",
             FormActions(
                 HTML(

@@ -1,9 +1,9 @@
 # MicroSys - Arabic Django System Integration Services
 
-[![PyPI version](https://badge.fury.io/py/microsys.svg)](https://pypi.org/project/microsys/)
+[![PyPI version](https://badge.fury.io/py/django-microsys.svg)](https://pypi.org/project/django-microsys/)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/debeski/microsys/main/microsys/static/img/login_logo.webp" alt="MicroSys Login Logo" width="450"/>
+  <img src="https://raw.githubusercontent.com/debeski/microsys/static/img/login_logo.webp" alt="MicroSys Login Logo" width="450"/>
 </p>
 
 **Arabic** lightweight, reusable Django app providing comprehensive system integration services, including user management, profile extension, permissions, localization, dynamic sidebar, and automated activity logging.
@@ -21,7 +21,7 @@
 ## Features
 - **System Integration**: Centralized management for users and system scopes.
 - **Profile Extension**: Automatically links a `Profile` to your existing User model.
-- **Scope Management**: Optional, dynamic scope isolation system with `ScopedModel`.
+- **Scope Management**: Optional, dynamic scope isolation system with abstract `ScopedModel`.
 - **Dynamic Sidebar**: Auto-discovery of list views and customizable menu items.
 - **Permissions**: Custom grouped permission UI (App/Model/Action).
 - **Automated Logging**: Full activity tracking (CRUD, Login/Logout) via Signals.
@@ -34,7 +34,7 @@
 ```bash
 pip install git+https://github.com/debeski/microsys.git
 # OR
-pip install microsys
+pip install django-microsys
 ```
 
 ## Quick Start & Configuration
@@ -81,61 +81,135 @@ pip install microsys
    ```
 
 4. **Include URLs:**
-   Use the `sys/` prefix for consistency.
+   Mount at **root** for seamless Django auth integration:
    ```python
    from django.urls import path, include
 
    urlpatterns = [
        # ...
-       path('sys/', include('microsys.urls')),
+       path('', include('microsys.urls')),  # Mount at root
    ]
    ```
+   
+   This provides:
+   - `/accounts/login/` and `/accounts/logout/` (Django defaults)
+   - `/sys/` for all system management routes
 
-5. **Run Migrations:**
+   > ⚠️ **Warning:** If your project already uses `/accounts/` URLs (e.g., `django-allauth`), you'll have conflicts. In that case, mount with a prefix and configure custom auth URLs:
+   > ```python
+   > # urls.py
+   > path('microsys/', include('microsys.urls')),
+   > 
+   > # settings.py
+   > LOGIN_URL = '/microsys/accounts/login/'
+   > LOGIN_REDIRECT_URL = '/microsys/sys/'
+   > LOGOUT_REDIRECT_URL = '/microsys/accounts/login/'
+   > ```
+
+5. **Run Setup Command:**
    ```bash
-   python manage.py migrate
+   python manage.py microsys_setup
    ```
+   This will create migrations, apply them, and validate your configuration.
+
+## Management Commands
+
+### `microsys_setup`
+Initial setup command that handles migrations and configuration validation.
+
+```bash
+# Full setup (recommended for first install)
+python manage.py microsys_setup
+
+# Skip configuration check
+python manage.py microsys_setup --skip-check
+
+# Only validate config (skip migrations)
+python manage.py microsys_setup --no-migrate
+```
+
+### `microsys_check`
+Validates your Django settings and shows exact code snippets for any missing configuration.
+
+```bash
+python manage.py microsys_check
+```
+
+**Output example:**
+```
+🔍 MicroSys Configuration Check
+==================================================
+
+📋 INSTALLED_APPS: ✓ OK
+📋 MIDDLEWARE: ✗ MISSING
+📋 CONTEXT_PROCESSORS: ✓ OK
+📋 URLS: ✓ OK
+📋 CRISPY_FORMS: ✓ OK
+
+==================================================
+❌ REQUIRED CONFIGURATION MISSING:
+
+▶ MIDDLEWARE:
+
+MIDDLEWARE = [
+    # ... after AuthenticationMiddleware
+    'microsys.middleware.ActivityLogMiddleware',
+]
+```
+
+> **Note:** microsys also validates your configuration at runtime and will emit warnings if required middleware or context processors are missing.
 
 ## App Configuration
 
-Customize branding and behavior by adding `MICROSYS_CONFIG` to your `settings.py`:
+Customize branding and behavior by adding `MICROSYS_CONFIG` and `SIDEBAR_AUTO` to your `settings.py`:
 
 ```python
 MICROSYS_CONFIG = {
     'name': 'My System Name',           # App title in navbar/pages
-    'logo_url': '/static/img/logo.png', # Custom logo path
+    'verbose_name': 'ادارة النظام',      # App title in navbar/pages
+    'logo': '/static/img/logo.png',     # Base/logo shown in the titlebar
+    'login_logo': '/static/img/login_logo.webp',  # Logo on login screen
     'description': 'System Desc',       # Optional description
+    'home_url': '/sys/',                 # Titlebar home link (default: /sys/)
     
-    # Sidebar Configuration
-    'SIDEBAR': {
-        'ENABLED': True,                    # Enable auto-discovery
-        'URL_PATTERNS': ['list'],           # Keywords to match in URL names for auto-menu
-        'EXCLUDE_APPS': ['admin', 'auth'],  # Apps to exclude
-        'CACHE_TIMEOUT': 3600,              # Cache timeout in seconds
-        'DEFAULT_ICON': 'bi-list',          # Default Bootstrap icon
-        
-        # Override auto-discovered items
-        'DEFAULT_ITEMS': {
-            'decree_list': {          # Key is the URL name
-                'label': 'Decisions', # Override label
-                'icon': 'bi-gavel',   # Override icon
-                'order': 10,          # Sort order
-            },
-        },
+    # ... branding fields only
+}
 
-        # Add manual items (e.g. for views without models)
-        'EXTRA_ITEMS': {
-            'الإدارة': {  # Accordion Group Name
-                'icon': 'bi-gear',
-                'items': [
-                    {
-                        'url_name': 'manage_sections',
-                        'label': 'إدارة الأقسام',
-                        'icon': 'bi-diagram-3',
-                        'permission': 'documents.manage_sections',
-                    },
-                ]
-            }
+# Auth redirects (defaults are set by microsys if not provided)
+LOGIN_REDIRECT_URL = '/sys/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+SIDEBAR_AUTO = {
+    'ENABLED': True,                    # Enable auto-discovery
+    'URL_PATTERNS': ['list'],           # Keywords to match in URL names for auto-menu
+    'EXCLUDE_APPS': ['admin', 'auth'],  # Apps to exclude
+    'CACHE_TIMEOUT': 3600,              # Cache timeout in seconds
+    'DEFAULT_ICON': 'bi-list',          # Default Bootstrap icon
+
+    # Built-in system group (accordion) can be disabled if desired
+    'SYSTEM_GROUP_ENABLED': True,
+
+    # Override auto-discovered items
+    'DEFAULT_ITEMS': {
+        'decree_list': {          # Key is the URL name
+            'label': 'Decisions', # Override label
+            'icon': 'bi-gavel',   # Override icon
+            'order': 10,          # Sort order
+        },
+    },
+
+    # Add manual items (e.g. for views without models)
+    'EXTRA_ITEMS': {
+        'الإدارة': {  # Accordion Group Name
+            'icon': 'bi-gear',
+            'items': [
+                {
+                    'url_name': 'manage_sections',
+                    'label': 'إدارة الأقسام',
+                    'icon': 'bi-diagram-3',
+                    'permission': 'is_staff',
+                },
+            ]
         }
     }
 }
@@ -152,7 +226,7 @@ scope = user.profile.scope
 ```
 
 ### 2. ScopedModel (Data Isolation)
-To enable automatic scope filtering and soft-delete, inherit from `ScopedModel`:
+To enable automatic scope filtering and soft-delete, **YOUR MODELS MUST** inherit from:
 ```python
 from microsys.models import ScopedModel
 
@@ -160,6 +234,7 @@ class MyModel(ScopedModel):
     name = models.CharField(...)
     # ...
 ```
+- **Automatic Scope Recognition**: `ScopedModel` already uses global scope settings, so you don't need to do anything.
 - **Automatic Filtering**: Queries are automatically filtered by the current user's scope.
 - **Soft Delete**: `MyModel.objects.get(pk=1).delete()` sets `deleted_at` instead of removing the row.
 
@@ -199,3 +274,5 @@ microsys/
 | Version  | Changes |
 |----------|---------|
 | v1.0.0   | • Initial release as pip package |
+| v1.1.0   | • URL restructure: auth at `/accounts/`, system at `/sys/` • Added `microsys_setup` and `microsys_check` management commands • Runtime configuration validation |
+| v1.2.0   | • PyPI name changed to `django-microsys` • Section model discovery hardened (dynamic app resolution, generic forms/tables/filters) • Scope fields now hide automatically when scopes are disabled • System sidebar group ships by default (configurable) • `is_staff` moved into the permissions UI |

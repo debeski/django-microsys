@@ -12,6 +12,35 @@ from difflib import get_close_matches
 
 def get_sidebar_config():
     """Get sidebar configuration from Django settings with defaults."""
+    system_group = {
+        'name': 'إدارة النظام',
+        'icon': 'bi-sliders',
+        'items': [
+            {
+                'url_name': 'manage_sections',
+                'label': 'إدارة الاقسام',
+                'icon': 'bi-diagram-3',
+                'permission': ['is_staff', 'microsys.manage_sections', 'microsys.view_sections'],
+            },
+            {
+                'url_name': 'manage_users',
+                'label': 'إدارة المستخدمين',
+                'icon': 'bi-people',
+                'permission': 'is_staff',
+            },
+            {
+                'url_name': 'user_activity_log',
+                'label': 'سجل النشاط',
+                'icon': 'bi-clock-history',
+                'permission': 'microsys.view_activity_log',
+            },
+            {
+                'url_name': 'options_view',
+                'label': 'خيارات التطبيق',
+                'icon': 'bi-gear',
+            },
+        ],
+    }
     defaults = {
         'ENABLED': True,
         'URL_PATTERNS': ['list'],
@@ -22,12 +51,45 @@ def get_sidebar_config():
         # Extra items that don't require model matching
         # Format: {'group_name': {'icon': 'bi-gear', 'items': [{'url_name': 'x', 'label': 'X', 'icon': 'bi-x'}]}}
         'EXTRA_ITEMS': {},
+        # Built-in system group (appended after user EXTRA_ITEMS when enabled)
+        'SYSTEM_GROUP_ENABLED': True,
+        'SYSTEM_GROUP': system_group,
         # Default overrides for auto-discovered items
         # Format: {'url_name': {'label': 'X', 'icon': 'bi-x', 'order': 10}}
         'DEFAULT_ITEMS': {},
     }
     user_config = getattr(settings, 'SIDEBAR_AUTO', {})
-    return {**defaults, **user_config}
+    config = {**defaults, **user_config}
+
+    # Merge EXTRA_ITEMS so user groups don't overwrite the system group
+    merged_extra = {}
+    user_extra = user_config.get('EXTRA_ITEMS', {})
+    if isinstance(user_extra, dict):
+        merged_extra.update(user_extra)
+
+    if config.get('SYSTEM_GROUP_ENABLED', True):
+        sys_group = config.get('SYSTEM_GROUP', system_group)
+        sys_name = sys_group.get('name', 'إدارة النظام')
+        sys_icon = sys_group.get('icon', 'bi-sliders')
+        sys_items = list(sys_group.get('items', []))
+
+        if sys_name in merged_extra:
+            existing = merged_extra[sys_name]
+            if not existing.get('icon'):
+                existing['icon'] = sys_icon
+            existing_items = list(existing.get('items', []))
+            existing_urls = {item.get('url_name') for item in existing_items}
+            for item in sys_items:
+                if item.get('url_name') in existing_urls:
+                    continue
+                existing_items.append(item)
+            existing['items'] = existing_items
+            merged_extra[sys_name] = existing
+        else:
+            merged_extra[sys_name] = {'icon': sys_icon, 'items': sys_items}
+
+    config['EXTRA_ITEMS'] = merged_extra
+    return config
 
 
 

@@ -4,8 +4,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="microsys",
-    version="1.0.0",
+    name="django-microsys",
+    version="1.2.0",
     author="DeBeski",
     author_email="debeski1@gmail.com",
     description="micro (System Integration Services) - RTL Django Starter Pack, with Users Management, Permissions, Auto Section Management Page, and Activity Logging, and more.",

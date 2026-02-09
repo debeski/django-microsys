@@ -52,10 +52,14 @@
                                                    id="{{ option.attrs.id }}"
                                                    data-action="{{ option.attrs.data_action }}"
                                                    data-model="{{ option.attrs.data_model }}"
+                                                   {% if option.attrs.disabled %}disabled{% endif %}
                                                    {% if option.selected %}checked{% endif %}>
                                             <label class="form-check-label small" for="{{ option.attrs.id }}">
                                                 {{ option.label }}
                                             </label>
+                                            {% if option.help_text %}
+                                            <div class="form-text">{{ option.help_text }}</div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     {% endfor %}

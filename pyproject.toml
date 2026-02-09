@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "microsys"
-version = "1.0.0"
+name = "django-microsys"
+version = "1.2.0"
 description = "micro (System Integration Services) - RTL Django Starter Pack, with Users Management, Permissions, Auto Section Management Page, and Activity Logging, and more."
 readme = "README.md"
 requires-python = ">=3.11"

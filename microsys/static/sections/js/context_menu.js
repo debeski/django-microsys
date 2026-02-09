@@ -131,6 +131,12 @@
         
         const container = btn.closest('.d-flex');
         const csrfToken = btn.dataset.csrf; // Get token
+        const fieldName = btn.dataset.fieldName || 'sub_affiliates';
+        const addUrl = btn.dataset.addUrl;
+        const parentModel = btn.dataset.parentModel;
+        const parentId = btn.dataset.parentId;
+        const parentField = btn.dataset.parentField;
+        const childModel = btn.dataset.childModel;
         
         // Create input element
         const inputWrapper = document.createElement('div');
@@ -153,7 +159,7 @@
         input.addEventListener('keydown', function(ev) {
             if (ev.key === 'Enter') {
                 ev.preventDefault();
-                saveNewSubsection(input, btn.dataset.parentModel, btn.dataset.childModel, csrfToken);
+                saveNewSubsection(input, parentModel, childModel, csrfToken, fieldName, addUrl, parentId, parentField);
             } else if (ev.key === 'Escape') {
                 inputWrapper.remove();
             }
@@ -161,14 +167,14 @@
         
         input.addEventListener('blur', function() {
             if (input.value.trim()) {
-                saveNewSubsection(input, btn.dataset.parentModel, btn.dataset.childModel, csrfToken);
+                saveNewSubsection(input, parentModel, childModel, csrfToken, fieldName, addUrl, parentId, parentField);
             } else {
                 inputWrapper.remove();
             }
         });
     }
 
-    function saveNewSubsection(input, parentModel, childModel, csrfToken) {
+    function saveNewSubsection(input, parentModel, childModel, csrfToken, fieldName, addUrl, parentId, parentField) {
         if (input.dataset.saving) return; // Prevent double submission
         
         const name = input.value.trim();
@@ -182,7 +188,11 @@
         formData.append('name', name);
         formData.append('csrfmiddlewaretoken', csrfToken); // Use passed token
         
-        fetch(`/manage/subsection/add/?model=${childModel}&parent=${parentModel}`, {
+        const queryParts = [`model=${childModel}`, `parent=${parentModel}`];
+        if (parentId) queryParts.push(`parent_id=${parentId}`);
+        if (parentField) queryParts.push(`parent_field=${parentField}`);
+        const query = `?${queryParts.join('&')}`;
+        fetch(`${addUrl}${query}`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -201,12 +211,14 @@
                 const wrapper = input.parentElement;
                 if (!wrapper.parentNode) return; // Prevent error if already processed
                 const container = wrapper.parentElement;
+                const emptyMsg = container.querySelector('.subsection-empty');
+                if (emptyMsg) emptyMsg.remove();
                 
-                const checkboxId = `id_sub_affiliates_new_${data.id}`;
+                const checkboxId = `id_${fieldName}_new_${data.id}`;
                 
                 const checkboxHTML = `
                     <input type="checkbox" 
-                           name="sub_affiliates" 
+                           name="${fieldName}" 
                            value="${data.id}" 
                            class="btn-check" 
                            id="${checkboxId}" 
@@ -267,7 +279,8 @@
         const subName = currentTarget.dataset.subName;
         // Get CSRF token from the add button or input if available
         let csrfToken = '';
-        const addBtn = document.querySelector('.add-subsection-btn');
+        const container = currentTarget.closest('.d-flex');
+        const addBtn = container ? container.querySelector('.add-subsection-btn') : document.querySelector('.add-subsection-btn');
         if (addBtn) csrfToken = addBtn.dataset.csrf;
         
         hideMenu();
@@ -356,13 +369,29 @@
         // `edit_subsection` view uses GET params for model resolution!
         // So we must pass them.
         
-        const addBtn = document.querySelector('.add-subsection-btn');
+        const container = currentTarget.closest('.d-flex');
+        const addBtn = container ? container.querySelector('.add-subsection-btn') : document.querySelector('.add-subsection-btn');
         let queryParams = '';
         if (addBtn) {
-            queryParams = `?model=${addBtn.dataset.childModel}&parent=${addBtn.dataset.parentModel}`;
+            const queryParts = [
+                `model=${addBtn.dataset.childModel}`,
+                `parent=${addBtn.dataset.parentModel}`,
+            ];
+            if (addBtn.dataset.parentId) queryParts.push(`parent_id=${addBtn.dataset.parentId}`);
+            if (addBtn.dataset.parentField) queryParts.push(`parent_field=${addBtn.dataset.parentField}`);
+            queryParams = `?${queryParts.join('&')}`;
         }
-        
-        fetch(`/manage/subsection/edit/${subId}/${queryParams}`, {
+        const editUrlTemplate = addBtn ? addBtn.dataset.editUrlTemplate : '';
+        const editUrl = editUrlTemplate ? editUrlTemplate.replace('{id}', subId) : '';
+        if (!editUrl) {
+            alert('تعذر تحديد رابط التعديل.');
+            input.disabled = false;
+            delete input.dataset.saving;
+            input.focus();
+            return;
+        }
+
+        fetch(`${editUrl}${queryParams}`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -428,7 +457,26 @@
             // Submit delete form
             const form = document.getElementById('deleteSubsectionForm');
             if (form) {
-                form.action = `/manage/subsection/delete/${subId}/`;
+                const container = currentTarget.closest('.d-flex');
+                const addBtn = container ? container.querySelector('.add-subsection-btn') : document.querySelector('.add-subsection-btn');
+                let queryParams = '';
+                if (addBtn) {
+                    const queryParts = [
+                        `model=${addBtn.dataset.childModel}`,
+                        `parent=${addBtn.dataset.parentModel}`,
+                    ];
+                    if (addBtn.dataset.parentId) queryParts.push(`parent_id=${addBtn.dataset.parentId}`);
+                    if (addBtn.dataset.parentField) queryParts.push(`parent_field=${addBtn.dataset.parentField}`);
+                    queryParams = `?${queryParts.join('&')}`;
+                }
+                const deleteUrlTemplate = addBtn ? addBtn.dataset.deleteUrlTemplate : '';
+                const deleteUrl = deleteUrlTemplate ? deleteUrlTemplate.replace('{id}', subId) : '';
+                if (!deleteUrl) {
+                    alert('تعذر تحديد رابط الحذف.');
+                    hideMenu();
+                    return;
+                }
+                form.action = `${deleteUrl}${queryParams}`;
                 form.submit();
             }
         }
