@@ -158,19 +158,21 @@ function performScopeToggle(url, csrfToken, checkbox, targetState) {
         headers: {
             'X-CSRFToken': csrfToken,
             'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ target_enabled: targetState })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             location.reload(); 
         } else {
-            alert(data.error || 'Failed to toggle scopes.');
+            alert(data.error || 'فشل في تبديل حالة النطاقات.');
             checkbox.checked = !targetState; // Revert to original state on failure
         }
     })
     .catch(err => {
         console.error('Error:', err);
+        alert('حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.');
         checkbox.checked = !targetState; // Revert
     });
 }

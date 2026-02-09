@@ -112,9 +112,15 @@ def _create_minimal_instance_from_post(model, data, request):
     instance = model(**field_map)
     if hasattr(instance, 'created_by'):
         instance.created_by = request.user
-    if is_scope_enabled() and hasattr(instance, 'scope') and not getattr(instance, 'scope', None):
-        if hasattr(request.user, 'profile') and request.user.profile.scope:
-            instance.scope = request.user.profile.scope
+    # Ensure scope is set for scoped models
+    if is_scope_enabled() and hasattr(instance, 'scope'):
+        if not getattr(instance, 'scope', None):
+            try:
+                user_scope = getattr(getattr(request.user, 'profile', None), 'scope', None)
+                if user_scope:
+                    instance.scope = user_scope
+            except Exception:
+                pass
     instance.save()
     return instance, []
 
@@ -539,21 +545,31 @@ def delete_scope(request, pk):
 @user_passes_test(is_superuser)
 def toggle_scopes(request):
     if request.method == "POST":
+        import json
         ScopeSettings = apps.get_model('microsys', 'ScopeSettings')
         settings = ScopeSettings.load()
         
+        # Get explicit target state from POST body (prevents race conditions)
+        target_enabled = None
+        try:
+            body = json.loads(request.body)
+            target_enabled = body.get('target_enabled')
+        except (json.JSONDecodeError, ValueError):
+            pass
+        
+        # Fallback to toggle if no explicit target provided
+        if target_enabled is None:
+            target_enabled = not settings.is_enabled
+        
         # Safety Check: Prevent disabling if users are assigned to scopes
-        # Check profile scope now
-        if settings.is_enabled:
-            # We can't easily check 'User' for profile__scope__isnull=False in a generic way 
-            # if we are decoupled, but here we know the structure.
+        if settings.is_enabled and not target_enabled:
             if User.objects.filter(profile__scope__isnull=False).exists():
                 return JsonResponse({
                     'success': False, 
                     'error': 'لا يمكن تعطيل النطاقات لوجود مستخدمين معينين لنطاقات حالية. يرجى إزالة النطاقات من كافة المستخدمين أولاً.'
-                }, status=200) # Use 200 to handle error in JS manually
+                }, status=200)
         
-        settings.is_enabled = not settings.is_enabled
+        settings.is_enabled = target_enabled
         settings.save()
         log_user_action(request, request.user, "UPDATE", f"Scope Settings: {'Enabled' if settings.is_enabled else 'Disabled'}")
         return JsonResponse({'success': True, 'is_enabled': settings.is_enabled})
@@ -588,8 +604,10 @@ def core_models_view(request):
             'error': 'لا توجد موديلات متاحة.',
         })
     
-    # Store in session for persistence
-    request.session['last_active_model'] = model_param
+    # Store in session only when user explicitly changes tab via GET param
+    # This reduces session writes and prevents SessionInterrupted errors
+    if request.GET.get('model'):
+        request.session['last_active_model'] = model_param
     
     selected_data = models_map[model_param]
     selected_model = selected_data['model']
@@ -664,14 +682,23 @@ def core_models_view(request):
         child_model = sub['model']
 
         if related_field not in form.fields:
+            # Use the normal manager which applies scope filtering when enabled
             form.fields[related_field] = forms.ModelMultipleChoiceField(
                 queryset=child_model.objects.all(),
                 required=False,
                 label=sub['verbose_name_plural'],
+                widget=forms.CheckboxSelectMultiple(),
             )
+        else:
+            # Field exists - ensure it has the right queryset and widget
+            form.fields[related_field].queryset = child_model.objects.all()
+            form.fields[related_field].widget = forms.CheckboxSelectMultiple()
+        
+        # Explicitly bind widget choices to the field's choice iterator
+        # This ensures the widget has access to queryset choices when iterating
+        form.fields[related_field].widget.choices = form.fields[related_field].choices
 
         form.fields[related_field].modal_target = f"addSubsectionModal_{child_model_name}"
-        form.fields[related_field].widget = forms.CheckboxSelectMultiple()
 
         if instance:
             try:
@@ -819,9 +846,15 @@ def add_subsection(request):
             instance = form.save(commit=False)
             if hasattr(instance, 'created_by'):
                  instance.created_by = request.user
-            if is_scope_enabled() and hasattr(instance, 'scope') and not getattr(instance, 'scope', None):
-                 if hasattr(request.user, 'profile') and request.user.profile.scope:
-                     instance.scope = request.user.profile.scope
+            # Ensure scope is set for scoped models
+            if is_scope_enabled() and hasattr(instance, 'scope'):
+                if not getattr(instance, 'scope', None):
+                    try:
+                        user_scope = getattr(getattr(request.user, 'profile', None), 'scope', None)
+                        if user_scope:
+                            instance.scope = user_scope
+                    except Exception:
+                        pass
             instance.save()
 
             if parent_model_name and parent_id and parent_field:
