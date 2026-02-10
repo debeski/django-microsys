@@ -6,7 +6,6 @@
 {% block title %}إدارة المستخدمين{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'users/css/style.css' %}">
 
     <div class="row">
         <div class="col-12">
@@ -31,7 +30,7 @@
             <i class="bi bi-person-plus-fill me-2 h4"></i> إضافة مستخدم جديد
         </a>
     
-        {% if scope_enabled and not request.user.scope %}
+        {% if scope_enabled and request.user.is_superuser %}
         <button type="button" class="btn btn-info rounded-pill no-print ms-2" title="إدارة النطاقات" id="btn-manage-scopes" data-url="{% url 'manage_scopes' %}">
             <i class="bi bi-list me-1 h4"></i> إدارة النطاقات
         </button>

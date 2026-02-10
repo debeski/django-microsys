@@ -39,6 +39,8 @@ urlpatterns = [
     path('sys/subsection/add/', views.add_subsection, name='add_subsection'),
     path('sys/subsection/edit/<int:pk>/', views.edit_subsection, name='edit_subsection'),
     path('sys/subsection/delete/<int:pk>/', views.delete_subsection, name='delete_subsection'),
+    path('sys/section/delete/', views.delete_section, name='delete_section'),
+    path('sys/section/subsections/', views.get_section_subsections, name='get_section_subsections'),
 
     # Sidebar Toggle URL
     path('sys/toggle-sidebar/', utils.toggle_sidebar, name='toggle_sidebar'),

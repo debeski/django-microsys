@@ -64,7 +64,7 @@ def create_user_profile(sender, instance, created, **kwargs):
     if sender == get_user_model():
         if created:
              Profile = apps.get_model('microsys', 'Profile')
-             Profile.objects.create(user=instance)
+             Profile.all_objects.create(user=instance)
 
 # Models to exclude from activity logging (e.g., internal Django models with non-integer PKs)
 EXCLUDED_MODELS = [

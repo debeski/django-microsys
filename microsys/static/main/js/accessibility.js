@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
     const root = document.documentElement;
     const modes = ['high-contrast', 'grayscale', 'invert', 'large-text', 'no-animations'];
 
@@ -15,12 +15,23 @@ document.addEventListener('DOMContentLoaded', function() {
         savedModes = [];
     }
 
-    // Apply saved modes
+    // Apply saved modes immediately
     savedModes.forEach(mode => {
         if (modes.includes(mode)) {
             root.classList.add(`accessibility-${mode}`);
         }
     });
+
+    function updateAccessibilityUI(activeModes) {
+        document.querySelectorAll('.accessibility-switch').forEach(toggle => {
+            const mode = toggle.getAttribute('data-accessibility');
+            toggle.checked = activeModes.includes(mode);
+        });
+    }
+
+    function initAccessibilityUI() {
+        updateAccessibilityUI(savedModes);
+    }
 
     // Function to toggle mode
     window.setAccessibilityMode = function(mode) {
@@ -35,32 +46,23 @@ document.addEventListener('DOMContentLoaded', function() {
             savedModes.push(mode);
             root.classList.add(`accessibility-${mode}`);
         }
-        
+
         // Save updated list
         if (savedModes.length > 0) {
             localStorage.setItem('accessibilityMode', JSON.stringify(savedModes));
         } else {
             localStorage.removeItem('accessibilityMode');
         }
-        
+
         // Visual Update
         updateAccessibilityUI(savedModes);
     };
 
-    function updateAccessibilityUI(activeModes) {
-        // Update Switches
-        document.querySelectorAll('.accessibility-switch').forEach(toggle => {
-            const mode = toggle.getAttribute('data-accessibility');
-            if (activeModes.includes(mode)) {
-                toggle.checked = true;
-            } else {
-                toggle.checked = false;
-            }
-        });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAccessibilityUI);
+    } else {
+        initAccessibilityUI();
     }
-
-    // Initialize UI on load
-    updateAccessibilityUI(savedModes);
 
     // Placeholder for Theme selection
     window.setThemeColor = function(color) {
@@ -74,4 +76,4 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Language selected:", lang);
         alert("سيم تفعيل تغيير اللغة في تحديث قادم.");
     };
-});
+})();

@@ -254,6 +254,24 @@ Built-in support for:
   - Disable Animations
 - **Location**: Accessible via the User Options menu (`options.html`) and Sidebar toolbar.
 
+### 5. Sections (Auto Forms/Tables)
+When a section model does not provide a custom Form/Table class, microsys generates them automatically.
+You can exclude fields from those auto-generated classes by setting model attributes:
+
+```python
+class Department(models.Model):
+    name = models.CharField(...)
+    code = models.CharField(...)
+    internal_notes = models.TextField(...)
+
+    form_exclude = ["internal_notes"]
+    table_exclude = ["internal_notes"]
+```
+
+Notes:
+- These attributes apply only to the auto-generated form/table.
+- If you provide a custom Form/Table class, it takes full precedence.
+
 ## File Structure
 
 ```
@@ -277,3 +295,4 @@ microsys/
 | v1.1.0   | • URL restructure: auth at `/accounts/`, system at `/sys/` • Added `microsys_setup` and `microsys_check` management commands • Runtime configuration validation |
 | v1.2.0   | • PyPI name changed to `django-microsys` • Section model discovery hardened (dynamic app resolution, generic forms/tables/filters) • Scope fields now hide automatically when scopes are disabled • System sidebar group ships by default (configurable) • `is_staff` moved into the permissions UI |
 | v1.3.0   | • Fixed subsection display: subsections now show correctly regardless of user scope • Fixed SessionInterrupted error: reduced session writes in section management • Scope toggle now accepts explicit target state to prevent race conditions • Improved error messaging in Arabic for scope operations |
+| v1.4.0   | • Section table context menu: right-click on table rows for Edit/Delete actions • View Subsections modal: sections with M2M subsections show linked items • AJAX-based section deletion with related-record protection • Auto-generated tables now include row data attributes for JS binding |

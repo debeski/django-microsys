@@ -33,6 +33,10 @@
                 handleInlineAdd(e, btn);
             }
         });
+        
+        // ===== SECTION TABLE ROW CONTEXT MENU =====
+        // Init this BEFORE the contextMenu guard so it works on all section tables
+        initSectionContextMenu();
 
         if (!contextMenu) return;
         
@@ -50,6 +54,203 @@
         if (editBtn) editBtn.addEventListener('click', handleEdit);
         if (deleteBtn) deleteBtn.addEventListener('click', handleDelete);
     }
+    
+    // Section Context Menu Variables
+    let sectionContextMenu = null;
+    let currentSectionRow = null;
+    let sectionData = null;
+    
+    function initSectionContextMenu() {
+        sectionContextMenu = document.getElementById('sectionContextMenu');
+        if (!sectionContextMenu) return;
+        
+        // Load section data from JSON
+        const sectionDataEl = document.getElementById('sectionData');
+        if (sectionDataEl) {
+            try {
+                sectionData = JSON.parse(sectionDataEl.textContent);
+            } catch(e) {
+                console.warn('Failed to parse section data', e);
+                return;
+            }
+        }
+        
+        // Bind events to section table rows
+        bindSectionRowEvents(document.querySelectorAll('.section-row'));
+        
+        // Bind section menu actions
+        const editBtn = sectionContextMenu.querySelector('[data-action="edit"]');
+        const deleteBtn = sectionContextMenu.querySelector('[data-action="delete"]');
+        const viewSubsectionsBtn = sectionContextMenu.querySelector('[data-action="view-subsections"]');
+        
+        if (editBtn) editBtn.addEventListener('click', handleSectionEdit);
+        if (deleteBtn) deleteBtn.addEventListener('click', handleSectionDelete);
+        if (viewSubsectionsBtn) viewSubsectionsBtn.addEventListener('click', handleViewSubsections);
+    }
+    
+    function bindSectionRowEvents(rows) {
+        rows.forEach(row => {
+            row.addEventListener('contextmenu', handleSectionContextMenu);
+            
+            // Long-press for mobile
+            row.addEventListener('touchstart', handleSectionTouchStart, { passive: false });
+            row.addEventListener('touchend', handleSectionTouchEnd);
+            row.addEventListener('touchcancel', handleSectionTouchEnd);
+            row.addEventListener('touchmove', handleSectionTouchEnd);
+        });
+    }
+    
+    function handleSectionContextMenu(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        currentSectionRow = e.currentTarget;
+        showSectionMenu(e.clientX, e.clientY);
+    }
+    
+    function handleSectionTouchStart(e) {
+        currentSectionRow = e.currentTarget;
+        pressTimer = setTimeout(() => {
+            if (navigator.vibrate) navigator.vibrate(50);
+            const touch = e.touches[0];
+            showSectionMenu(touch.clientX, touch.clientY);
+            e.preventDefault();
+        }, LONG_PRESS_DURATION);
+    }
+    
+    function handleSectionTouchEnd() {
+        if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        }
+    }
+    
+    function showSectionMenu(x, y) {
+        if (!sectionContextMenu) return;
+        
+        // Hide subsection menu if open
+        hideMenu();
+        
+        sectionContextMenu.style.display = 'block';
+        sectionContextMenu.style.left = x + 'px';
+        sectionContextMenu.style.top = y + 'px';
+        sectionContextMenu.classList.add('show');
+        
+        // Adjust if menu goes off-screen
+        const rect = sectionContextMenu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            sectionContextMenu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+        }
+        if (rect.bottom > window.innerHeight) {
+            sectionContextMenu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+        }
+    }
+    
+    function hideSectionMenu() {
+        if (sectionContextMenu) {
+            sectionContextMenu.classList.remove('show');
+            sectionContextMenu.style.display = 'none';
+        }
+    }
+    
+    function handleSectionEdit() {
+        if (!currentSectionRow || !sectionData) return;
+        
+        const pk = currentSectionRow.dataset.pk;
+        const editUrl = sectionData.editUrlTemplate.replace('{id}', pk);
+        window.location.href = editUrl;
+        
+        hideSectionMenu();
+    }
+    
+    function handleSectionDelete() {
+        if (!currentSectionRow || !sectionData) return;
+        
+        const pk = currentSectionRow.dataset.pk;
+        const name = currentSectionRow.dataset.name;
+        
+        if (!confirm(`هل أنت متأكد من حذف "${name}"؟`)) {
+            hideSectionMenu();
+            return;
+        }
+        
+        fetch(sectionData.deleteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': sectionData.csrf,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ model: sectionData.model, pk: pk })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove row from table
+                currentSectionRow.remove();
+                // Show success feedback (optional toast)
+            } else {
+                alert(data.error || 'حدث خطأ أثناء الحذف');
+            }
+        })
+        .catch(err => {
+            console.error('Delete error:', err);
+            alert('حدث خطأ في الاتصال بالخادم');
+        });
+        
+        hideSectionMenu();
+    }
+    
+    function handleViewSubsections() {
+        if (!currentSectionRow || !sectionData) return;
+        
+        const pk = currentSectionRow.dataset.pk;
+        const modalBody = document.getElementById('viewSubsectionsModalBody');
+        const modal = document.getElementById('viewSubsectionsModal');
+        
+        if (!modalBody || !modal) return;
+        
+        // Show loading spinner
+        modalBody.innerHTML = `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">جاري التحميل...</span>
+                </div>
+            </div>
+        `;
+        
+        // Show modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        // Fetch subsections
+        fetch(`${sectionData.subsectionsUrl}?model=${sectionData.model}&pk=${pk}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    modalBody.innerHTML = data.html;
+                    // Update modal title if provided
+                    if (data.title) {
+                        const titleEl = modal.querySelector('.modal-title');
+                        if (titleEl) titleEl.textContent = data.title;
+                    }
+                } else {
+                    modalBody.innerHTML = `<p class="text-danger text-center">${data.error || 'حدث خطأ'}</p>`;
+                }
+            })
+            .catch(err => {
+                console.error('Fetch subsections error:', err);
+                modalBody.innerHTML = '<p class="text-danger text-center">حدث خطأ في الاتصال بالخادم</p>';
+            });
+        
+        hideSectionMenu();
+    }
+    
+    // Also hide section menu on document click/scroll
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#sectionContextMenu')) {
+            hideSectionMenu();
+        }
+    });
+    document.addEventListener('scroll', hideSectionMenu);
     
     function bindCheckboxEvents(elements) {
         elements.forEach(label => {

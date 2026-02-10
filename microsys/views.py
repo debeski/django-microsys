@@ -17,6 +17,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 import os
 import re
+import json
 import urllib.request
 import psutil
 import platform
@@ -27,6 +28,7 @@ from django.urls import reverse
 from django import forms
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models as dj_models
+from django.db.models import ManyToManyField
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
@@ -114,13 +116,17 @@ def _create_minimal_instance_from_post(model, data, request):
         instance.created_by = request.user
     # Ensure scope is set for scoped models
     if is_scope_enabled() and hasattr(instance, 'scope'):
-        if not getattr(instance, 'scope', None):
-            try:
-                user_scope = getattr(getattr(request.user, 'profile', None), 'scope', None)
-                if user_scope:
+        try:
+            user_scope = getattr(getattr(request.user, 'profile', None), 'scope', None)
+            if not user_scope and hasattr(request.user, 'scope'):
+                user_scope = request.user.scope
+            if user_scope:
+                if not request.user.is_superuser:
                     instance.scope = user_scope
-            except Exception:
-                pass
+                elif not getattr(instance, 'scope', None):
+                    instance.scope = user_scope
+        except Exception:
+            pass
     instance.save()
     return instance, []
 
@@ -201,6 +207,8 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTa
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)
         if not is_scope_enabled():
+            table.exclude = ('scope',)
+        elif hasattr(self.request.user, 'profile') and self.request.user.profile.scope and not self.request.user.is_superuser:
             table.exclude = ('scope',)
         return table
 
@@ -301,7 +309,7 @@ def delete_user(request, pk):
         
         # Set deleted_at on profile
         Profile = apps.get_model('microsys', 'Profile')
-        profile, created = Profile.objects.get_or_create(user=user)
+        profile, created = Profile.all_objects.get_or_create(user=user)
         profile.deleted_at = timezone.now()
         profile.save()
         
@@ -460,17 +468,14 @@ def edit_profile(request):
 # ###########################
 
 
-@login_required # staff check handled in template or can be added here
-@user_passes_test(is_staff)
+@login_required
+@user_passes_test(is_superuser)
 def manage_scopes(request):
     """
     Returns the initial modal content with the table.
     """
     if not is_scope_enabled():
          return JsonResponse({'error': 'Scope management is disabled.'}, status=403)
-
-    if hasattr(request.user, 'profile') and request.user.profile.scope:
-        return JsonResponse({'error': 'Permission denied.'}, status=403)
 
     Scope = apps.get_model('microsys', 'Scope')
     ScopeTable = import_string('microsys.tables.ScopeTable')
@@ -482,14 +487,11 @@ def manage_scopes(request):
     return JsonResponse({'html': html})
 
 @login_required
-@user_passes_test(is_staff)
+@user_passes_test(is_superuser)
 def get_scope_form(request, pk=None):
     """
     Returns the Add/Edit form partial.
     """
-    if hasattr(request.user, 'profile') and request.user.profile.scope:
-        return JsonResponse({'error': 'Permission denied.'}, status=403)
-
     ScopeForm = import_string('microsys.forms.ScopeForm')
     Scope = apps.get_model('microsys', 'Scope')
 
@@ -503,14 +505,11 @@ def get_scope_form(request, pk=None):
     return JsonResponse({'html': html})
 
 @login_required
-@user_passes_test(is_staff)
+@user_passes_test(is_superuser)
 def save_scope(request, pk=None):
     """
     Handles form submission. Returns updated table on success, or form with errors on failure.
     """
-    if hasattr(request.user, 'profile') and request.user.profile.scope:
-        return JsonResponse({'error': 'Permission denied.'}, status=403)
-    
     ScopeForm = import_string('microsys.forms.ScopeForm')
     Scope = apps.get_model('microsys', 'Scope')
     ScopeTable = import_string('microsys.tables.ScopeTable')
@@ -537,7 +536,7 @@ def save_scope(request, pk=None):
     return JsonResponse({'success': False, 'error': 'Invalid method'})
 
 @login_required
-@user_passes_test(is_staff)
+@user_passes_test(is_superuser)
 def delete_scope(request, pk):
     return JsonResponse({'success': False, 'error': 'تم تعطيل حذف النطاقات لأسباب أمنية.'})
 
@@ -632,6 +631,14 @@ def core_models_view(request):
             instance = selected_model.objects.get(pk=instance_id)
         except selected_model.DoesNotExist:
             instance = None
+
+    cancel_url = None
+    if 'id' in request.GET:
+        params = request.GET.copy()
+        params.pop('id', None)
+        cancel_url = reverse('manage_sections')
+        if params:
+            cancel_url = f"{cancel_url}?{params.urlencode()}"
     
     subsection_field_names = set()
 
@@ -640,12 +647,25 @@ def core_models_view(request):
     if not hasattr(form, "helper") or form.helper is None:
         form.helper = FormHelper()
         form.helper.form_tag = False
-        form.helper.add_input(Submit("submit", "حفظ", css_class="btn btn-primary rounded-pill"))
         form._auto_helper = True
     else:
         form.helper.form_tag = False
         if not getattr(form.helper, "inputs", None):
             form.helper.add_input(Submit("submit", "حفظ", css_class="btn btn-primary rounded-pill"))
+
+    user_scope = None
+    if hasattr(request.user, 'profile') and getattr(request.user.profile, 'scope', None):
+        user_scope = request.user.profile.scope
+    elif hasattr(request.user, 'scope') and getattr(request.user, 'scope', None):
+        user_scope = request.user.scope
+
+    if is_scope_enabled() and user_scope and not request.user.is_superuser:
+        scope_field = form.fields.get('scope')
+        if scope_field:
+            scope_field.initial = user_scope
+            scope_field.disabled = True
+            scope_field.widget = forms.HiddenInput()
+            scope_field.required = False
     
     # Create filter and queryset
     queryset = selected_model.objects.all()
@@ -672,6 +692,11 @@ def core_models_view(request):
         if not hasattr(table, "model_name"):
             table.model_name = model_param
     RequestConfig(request, paginate={'per_page': 10}).configure(table)
+
+    if is_scope_enabled() and user_scope and not request.user.is_superuser:
+        existing_exclude = getattr(table, "exclude", None) or ()
+        merged = list(dict.fromkeys(list(existing_exclude) + ["scope"]))
+        table.exclude = tuple(merged)
     
     # Handle Subsections (Child Models)
     subsection_forms = []
@@ -755,6 +780,14 @@ def core_models_view(request):
         child_form_instance.helper.form_action = f"{target_url}?model={child_model_name}&parent={model_param}"
         if not getattr(child_form_instance.helper, "inputs", None):
              child_form_instance.helper.add_input(Submit("submit", "حفظ", css_class="btn btn-primary rounded-pill"))
+
+        if is_scope_enabled() and user_scope and not request.user.is_superuser:
+            child_scope_field = child_form_instance.fields.get('scope')
+            if child_scope_field:
+                child_scope_field.initial = user_scope
+                child_scope_field.disabled = True
+                child_scope_field.widget = forms.HiddenInput()
+                child_scope_field.required = False
         
         subsection_forms.append({
             'name': child_model_name,
@@ -771,6 +804,9 @@ def core_models_view(request):
                 saved_instance.created_by = request.user
             if hasattr(saved_instance, 'updated_by'):
                 saved_instance.updated_by = request.user
+            # Enforce scope for non-superusers with assigned scope
+            if is_scope_enabled() and user_scope and not request.user.is_superuser and hasattr(saved_instance, 'scope'):
+                saved_instance.scope = user_scope
             saved_instance.save()
             if hasattr(form, 'save_m2m'):
                 form.save_m2m()
@@ -808,10 +844,14 @@ def core_models_view(request):
         'filter': filter_obj,
         'table': table,
         'id': instance_id,
+        'show_form_actions': getattr(form, "_auto_helper", False),
+        'show_cancel': 'id' in request.GET,
+        'cancel_url': cancel_url,
         'ar_name': selected_data['verbose_name'],
         'ar_names': selected_data['verbose_name_plural'],
         'subsection_forms': subsection_forms,
         'subsection_selects': subsection_selects,
+        'has_subsections': len(subsection_selects) > 0,
     }
     
     return render(request, 'microsys/sections/manage_sections.html', context)
@@ -848,13 +888,17 @@ def add_subsection(request):
                  instance.created_by = request.user
             # Ensure scope is set for scoped models
             if is_scope_enabled() and hasattr(instance, 'scope'):
-                if not getattr(instance, 'scope', None):
-                    try:
-                        user_scope = getattr(getattr(request.user, 'profile', None), 'scope', None)
-                        if user_scope:
+                try:
+                    user_scope = getattr(getattr(request.user, 'profile', None), 'scope', None)
+                    if not user_scope and hasattr(request.user, 'scope'):
+                        user_scope = request.user.scope
+                    if user_scope:
+                        if not request.user.is_superuser:
                             instance.scope = user_scope
-                    except Exception:
-                        pass
+                        elif not getattr(instance, 'scope', None):
+                            instance.scope = user_scope
+                except Exception:
+                    pass
             instance.save()
 
             if parent_model_name and parent_id and parent_field:
@@ -969,9 +1013,7 @@ def delete_subsection(request, pk):
     """
     Delete a subsection (child model) by pk.
     Checks for related records before deletion.
-    """
-    from .utils import has_related_records
-    
+    """    
     child_model_name = request.GET.get('model', 'subaffiliate')
     parent_model_name = request.GET.get('parent', 'affiliate')
     
@@ -998,6 +1040,93 @@ def delete_subsection(request, pk):
     if parent_model_name:
         redirect_url += f"?model={parent_model_name}"
     return redirect(redirect_url)
+
+
+@login_required
+def delete_section(request):
+    """
+    Delete a section (main model) by pk via AJAX.
+    Returns JSON response.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'طريقة غير مسموحة'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        model_name = data.get('model')
+        pk = data.get('pk')
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'success': False, 'error': 'بيانات غير صالحة'}, status=400)
+    
+    if not model_name or not pk:
+        return JsonResponse({'success': False, 'error': 'معلومات ناقصة'}, status=400)
+    
+    model = resolve_model_by_name(model_name)
+    if not model:
+        return JsonResponse({'success': False, 'error': 'القسم غير موجود'}, status=404)
+    
+    try:
+        instance = model.objects.get(pk=pk)
+    except model.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'العنصر غير موجود'}, status=404)
+    
+    # Check if has related records (protect from deletion)
+    if has_related_records(instance):
+        return JsonResponse({
+            'success': False, 
+            'error': 'لا يمكن حذف هذا العنصر لارتباطه بسجلات أخرى.'
+        }, status=200)
+    
+    name = str(instance)
+    instance.delete()
+    
+    return JsonResponse({'success': True, 'message': f"تم حذف: {name}"})
+
+
+@login_required
+def get_section_subsections(request):
+    """
+    Get subsections for a section via AJAX.
+    Returns HTML for modal body.
+    """
+    model_name = request.GET.get('model')
+    pk = request.GET.get('pk')
+    
+    if not model_name or not pk:
+        return JsonResponse({'success': False, 'error': 'معلومات ناقصة'}, status=400)
+    
+    model = resolve_model_by_name(model_name)
+    if not model:
+        return JsonResponse({'success': False, 'error': 'القسم غير موجود'}, status=404)
+    
+    try:
+        instance = model.objects.get(pk=pk)
+    except model.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'العنصر غير موجود'}, status=404)
+    
+    # Find M2M fields (subsections)
+    subsections_html = []
+    for field in model._meta.get_fields():
+        if isinstance(field, ManyToManyField):
+            child_model = field.related_model
+            rel_manager = getattr(instance, field.name, None)
+            if rel_manager:
+                items = list(rel_manager.all())
+                if items:
+                    subsections_html.append(f'<h6 class="mb-2">{field.related_model._meta.verbose_name_plural}</h6>')
+                    subsections_html.append('<ul class="list-group mb-3">')
+                    for item in items:
+                        subsections_html.append(f'<li class="list-group-item">{item}</li>')
+                    subsections_html.append('</ul>')
+    
+    if not subsections_html:
+        subsections_html = ['<p class="text-muted text-center">لا توجد أقسام فرعية مرتبطة</p>']
+    
+    return JsonResponse({
+        'success': True, 
+        'html': ''.join(subsections_html),
+        'title': f'الأقسام الفرعية لـ: {instance}'
+    })
 
 
 # Options View

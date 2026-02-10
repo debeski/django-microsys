@@ -10,7 +10,17 @@
             const savedTheme = localStorage.getItem('appTheme');
             const savedAcc = localStorage.getItem('accessibilityMode');
             if (savedTheme) document.documentElement.classList.add(`theme-${savedTheme}`);
-            if (savedAcc) document.documentElement.classList.add(`accessibility-${savedAcc}`);
+            if (savedAcc) {
+                let modes = [];
+                try {
+                    modes = savedAcc.trim().startsWith('[') ? JSON.parse(savedAcc) : [savedAcc];
+                } catch (e) {
+                    modes = [savedAcc];
+                }
+                modes.forEach((mode) => {
+                    if (mode) document.documentElement.classList.add(`accessibility-${mode}`);
+                });
+            }
         })();
     </script>
     {% load static %}
@@ -34,6 +44,8 @@
     <!-- Driver.js moved to tutorial.html -->
     {% block extra_head %}{% endblock %}
 
+    <script src="{% static 'themes/main.js' %}" nonce="{{ request.csp_nonce }}" defer></script>
+    <script src="{% static 'main/js/accessibility.js' %}" nonce="{{ request.csp_nonce }}" defer></script>
 
 </head>
 <body>
@@ -70,7 +82,6 @@
     <link rel="stylesheet" href="{% static 'flatpickr/flatpickr.min.css' %}">
     <script src="{% static 'flatpickr/flatpickr.min.js' %}" nonce="{{ request.csp_nonce }}"></script>
     <script src="{% static 'flatpickr/locale/ar.js' %}" nonce="{{ request.csp_nonce }}"></script>
-    <script src="{% static 'themes/main.js' %}" nonce="{{ request.csp_nonce }}" defer></script>
 
     <script nonce="{{ request.csp_nonce }}">
         document.addEventListener('DOMContentLoaded', function() {
@@ -102,7 +113,6 @@
     <!-- {% include 'includes/scan.html' %} -->
     <!-- Themes logic moved to sidebar app -->
     <!-- <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" nonce="{{ request.csp_nonce }}"></script> -->
-    <script src="{% static 'main/js/accessibility.js' %}" nonce="{{ request.csp_nonce }}"></script>
 
 </body>
 </html>

@@ -65,6 +65,7 @@ class ScopedModel(models.Model):
     scope = ScopeForeignKey('microsys.Scope', on_delete=models.PROTECT, null=True, blank=True, verbose_name="النطاق")
     
     objects = ScopedManager()
+    all_objects = models.Manager()
 
     class Meta:
         abstract = True

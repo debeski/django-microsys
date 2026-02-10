@@ -101,13 +101,27 @@ def resolve_form_class_for_model(model):
             or _resolve_model_class(model, "get_form_class_path")
         )
     if not form_class:
+        raw_exclude = getattr(model, "form_exclude", None)
+        if raw_exclude is None:
+            raw_exclude = []
+        elif isinstance(raw_exclude, (str, bytes)):
+            raw_exclude = [raw_exclude]
+        else:
+            raw_exclude = list(raw_exclude)
+
         try:
             has_scope_field = model._meta.get_field("scope") is not None
         except Exception:
             has_scope_field = False
 
         if has_scope_field and not is_scope_enabled():
-            form_class = modelform_factory(model, exclude=["scope"])
+            exclude = ["scope", *raw_exclude]
+            # Remove duplicates while preserving order
+            exclude = list(dict.fromkeys(exclude))
+            form_class = modelform_factory(model, exclude=exclude)
+        elif raw_exclude:
+            exclude = list(dict.fromkeys(raw_exclude))
+            form_class = modelform_factory(model, exclude=exclude)
         else:
             form_class = modelform_factory(model, fields='__all__')
     return form_class
@@ -117,12 +131,36 @@ def _build_generic_table_class(model):
     """
     Build a minimal django-tables2 Table for a model.
     Build Meta dynamically so django-tables2 sees Meta.model at class creation.
+    Includes row_attrs for context menu support.
     """
+    raw_exclude = getattr(model, "table_exclude", None)
+    if raw_exclude is None:
+        raw_exclude = []
+    elif isinstance(raw_exclude, (str, bytes)):
+        raw_exclude = [raw_exclude]
+    else:
+        raw_exclude = list(raw_exclude)
+
+    try:
+        has_scope_field = model._meta.get_field("scope") is not None
+    except Exception:
+        has_scope_field = False
+
+    if has_scope_field and not is_scope_enabled():
+        raw_exclude.append("scope")
+
     meta_attrs = {
         "model": model,
         "template_name": "django_tables2/bootstrap5.html",
-        "attrs": {'class': 'table table-striped table-sm table align-middle'},
+        "attrs": {'class': 'table table-striped table-sm table align-middle section-table'},
+        "row_attrs": {
+            'class': 'section-row',
+            'data-pk': lambda record: record.pk,
+            'data-name': lambda record: str(record),
+        },
     }
+    if raw_exclude:
+        meta_attrs["exclude"] = list(dict.fromkeys(raw_exclude))
     Meta = type("Meta", (), meta_attrs)
     table_attrs = {"Meta": Meta}
     return type(f"{model.__name__}AutoTable", (tables.Table,), table_attrs)
@@ -308,18 +346,51 @@ def has_related_records(instance, ignore_relations=None):
     Used for locking logic (preventing deletion/unlinking).
     
     ignore_relations: list of accessor names to skip (e.g. ['affiliates', 'company_set'])
+    
+    Note: Automatically ignores M2M relations where this model is the 'child' 
+    (i.e., the target of a ManyToManyField from a parent section model).
+    This includes the M2M reverse accessor AND any FK from through tables
+    (both auto-created and custom through models like AffiliateDepartment).
     """
+    from django.db.models.fields.related import ManyToManyRel, ManyToOneRel
+    
     if not instance:
         return False
     
     if ignore_relations is None:
         ignore_relations = []
-        
+    
+    # Auto-detect M2M parent relations to ignore
+    # Step 1: Collect all through-table models from M2M relationships pointing at us
+    auto_ignore = set()
+    through_models = set()
+    
+    for field in instance._meta.get_fields():
+        if isinstance(field, ManyToManyRel):
+            # This is the "reverse" side of a M2M - the parent points to us
+            accessor_name = field.get_accessor_name()
+            if accessor_name:
+                auto_ignore.add(accessor_name)
+            # Track through table (works for both auto-created and custom)
+            if hasattr(field, 'through') and field.through:
+                through_models.add(field.through)
+    
+    # Step 2: Any ManyToOneRel whose source model is a known through table
+    # should also be ignored (the FK from the through table to this model)
+    for field in instance._meta.get_fields():
+        if isinstance(field, ManyToOneRel):
+            if field.related_model in through_models:
+                accessor_name = field.get_accessor_name()
+                if accessor_name:
+                    auto_ignore.add(accessor_name)
+    
     for related_object in instance._meta.get_fields():
         if related_object.is_relation and related_object.auto_created:
             # Reverse relationship (Someone points to us)
             accessor_name = related_object.get_accessor_name()
-            if not accessor_name or accessor_name in ignore_relations:
+            if not accessor_name:
+                continue
+            if accessor_name in ignore_relations or accessor_name in auto_ignore:
                 continue
                 
             try:

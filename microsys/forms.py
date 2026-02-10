@@ -256,14 +256,23 @@ class CustomUserCreationForm(UserCreationForm):
             self.fields['permissions'].queryset = self.fields['permissions'].queryset.filter(id__in=user_perms.values_list('id', flat=True))
         
         ScopeSettings = apps.get_model('microsys', 'ScopeSettings')
-        if not ScopeSettings.load().is_enabled:
+        scope_enabled = ScopeSettings.load().is_enabled
+
+        lock_scope = bool(
+            self.user_context
+            and not self.user_context.is_superuser
+            and hasattr(self.user_context, 'profile')
+            and self.user_context.profile.scope
+        )
+
+        if not scope_enabled or lock_scope:
+            if lock_scope:
+                self.fields['scope'].initial = self.user_context.profile.scope
             self.fields['scope'].disabled = True
             self.fields['scope'].widget = forms.HiddenInput()
             self.fields['scope'].required = False
-        
-        if self.user_context and not self.user_context.is_superuser and hasattr(self.user_context, 'profile') and self.user_context.profile.scope:
-            self.fields['scope'].initial = self.user_context.profile.scope
-            self.fields['scope'].disabled = True
+
+        if lock_scope:
             # Security Fix: Hide manage_staff
             self.fields['permissions'].queryset = self.fields['permissions'].queryset.exclude(codename='manage_staff')
         
@@ -295,8 +304,8 @@ class CustomUserCreationForm(UserCreationForm):
         _attach_is_staff_permission(self, self.fields['permissions'].widget.attrs.get('id'))
 
         self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Row(Field("username", css_class="form-control")),            
+        layout_blocks = [
+            Row(Field("username", css_class="form-control")),
             Row(Field("password1", css_class="form-control")),
             Row(Field("password2", css_class="form-control")),
             HTML("<hr>"),
@@ -310,7 +319,10 @@ class CustomUserCreationForm(UserCreationForm):
                 Div(Field("email", css_class="form-control"), css_class="col-md-6"),
                 css_class="row"
             ),
-            Row(Field("scope", css_class="form-control")),
+        ]
+        if scope_enabled and not lock_scope:
+            layout_blocks.append(Row(Field("scope", css_class="form-control")))
+        layout_blocks.extend([
             HTML("<hr>"),
             Field("permissions", css_class="col-12"),
             "is_active",
@@ -331,7 +343,9 @@ class CustomUserCreationForm(UserCreationForm):
                     """
                 )
             )
-        )
+        ])
+
+        self.helper.layout = Layout(*layout_blocks)
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -344,9 +358,12 @@ class CustomUserCreationForm(UserCreationForm):
             # Save Profile fields
             Profile = apps.get_model('microsys', 'Profile')
             # Check if profile already exists (via signal) or create it
-            profile, created = Profile.objects.get_or_create(user=user)
+            profile, created = Profile.all_objects.get_or_create(user=user)
             profile.phone = self.cleaned_data.get('phone')
-            profile.scope = self.cleaned_data.get('scope')
+            if self.user_context and not self.user_context.is_superuser and hasattr(self.user_context, 'profile') and self.user_context.profile.scope:
+                profile.scope = self.user_context.profile.scope
+            else:
+                profile.scope = self.cleaned_data.get('scope')
             profile.save()
             
         return user
@@ -413,7 +430,18 @@ class CustomUserChangeForm(UserChangeForm):
             self.fields["permissions"].initial = user_instance.user_permissions.all()
 
         ScopeSettings = apps.get_model('microsys', 'ScopeSettings')
-        if not ScopeSettings.load().is_enabled:
+        scope_enabled = ScopeSettings.load().is_enabled
+
+        lock_scope = bool(
+            self.user_context
+            and not self.user_context.is_superuser
+            and hasattr(self.user_context, 'profile')
+            and self.user_context.profile.scope
+        )
+
+        if not scope_enabled or lock_scope:
+            if lock_scope:
+                self.fields['scope'].initial = self.user_context.profile.scope
             self.fields['scope'].disabled = True
             self.fields['scope'].widget = forms.HiddenInput()
             self.fields['scope'].required = False
@@ -429,11 +457,11 @@ class CustomUserChangeForm(UserChangeForm):
                     self.fields['scope'].help_text = "لا يمكنك تغيير نطاقك الخاص لمنع تجريد نفسك من صلاحيات المدير العام."
                     self.fields['permissions'].queryset = self.fields['permissions'].queryset.exclude(codename='manage_staff')
             
-            # 2. Scope Manager Restrictions
-            elif hasattr(self.user_context, 'profile') and self.user_context.profile.scope:
-                self.fields['scope'].disabled = True
-                self.fields['scope'].initial = self.user_context.profile.scope
-        
+        # 2. Scope Manager Restrictions
+        if lock_scope:
+             # Already handled above by general lock_scope check, but we need to ensure permissions are filtered
+             self.fields['permissions'].queryset = self.fields['permissions'].queryset.exclude(codename='manage_staff')
+
         self.fields["email"].required = False
 
         # --- can_manage_staff logic ---
@@ -446,7 +474,8 @@ class CustomUserChangeForm(UserChangeForm):
 
         self.helper = FormHelper()
         self.helper.form_tag = False
-        self.helper.layout = Layout(
+        
+        layout_blocks = [
             Row(Field("username", css_class="form-control")),            
             HTML("<hr>"),
             Row(
@@ -459,7 +488,12 @@ class CustomUserChangeForm(UserChangeForm):
                 Div(Field("email", css_class="form-control"), css_class="col-md-6"),
                 css_class="row"
             ),
-            Row(Field("scope", css_class="form-control")),
+        ]
+        
+        if scope_enabled and not lock_scope:
+            layout_blocks.append(Row(Field("scope", css_class="form-control")))
+            
+        layout_blocks.extend([
             HTML("<hr>"),
             Field("permissions", css_class="col-12"),
             "is_active",
@@ -487,7 +521,9 @@ class CustomUserChangeForm(UserChangeForm):
                     """
                 )
             )
-        )
+        ])
+        
+        self.helper.layout = Layout(*layout_blocks)
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -497,9 +533,12 @@ class CustomUserChangeForm(UserChangeForm):
             
             # Save Profile fields
             Profile = apps.get_model('microsys', 'Profile')
-            profile, created = Profile.objects.get_or_create(user=user)
+            profile, created = Profile.all_objects.get_or_create(user=user)
             profile.phone = self.cleaned_data.get('phone')
-            profile.scope = self.cleaned_data.get('scope')
+            if self.user_context and not self.user_context.is_superuser and hasattr(self.user_context, 'profile') and self.user_context.profile.scope:
+                profile.scope = self.user_context.profile.scope
+            else:
+                profile.scope = self.cleaned_data.get('scope')
             profile.save()
             
         return user
@@ -576,7 +615,7 @@ class UserProfileEditForm(forms.ModelForm):
             user.save()
             
             Profile = apps.get_model('microsys', 'Profile')
-            profile, created = Profile.objects.get_or_create(user=user)
+            profile, created = Profile.all_objects.get_or_create(user=user)
             
             profile.phone = self.cleaned_data.get('phone')
             if self.cleaned_data.get('profile_picture'):
