@@ -231,6 +231,12 @@ def _build_generic_filter_class(model):
             row_fields = [
                 Column(Field('keyword', placeholder="البحث"), css_class='form-group col-auto flex-fill'),
             ]
+            # Date range pickers (flatpickr auto-inits via CSS class)
+            if date_field:
+                if 'date_gte' in self.filters:
+                    row_fields.append(Column(Field('date_gte', placeholder="من تاريخ"), css_class='form-group col-auto'))
+                if 'date_lte' in self.filters:
+                    row_fields.append(Column(Field('date_lte', placeholder="إلى تاريخ"), css_class='form-group col-auto'))
             if date_field and 'year' in self.filters:
                 row_fields.append(Column(Field('year', placeholder="السنة", dir="rtl"), css_class='form-group col-auto'))
 
@@ -292,6 +298,19 @@ def _build_generic_filter_class(model):
         "keyword": django_filters.CharFilter(method='filter_keyword', label=''),
     }
     if date_field:
+        from django import forms as dj_forms
+        attrs["date_gte"] = django_filters.DateFilter(
+            field_name=date_field,
+            lookup_expr="gte",
+            label='',
+            widget=dj_forms.DateInput(attrs={'class': 'form-control flatpickr', 'placeholder': 'من تاريخ'}),
+        )
+        attrs["date_lte"] = django_filters.DateFilter(
+            field_name=date_field,
+            lookup_expr="lte",
+            label='',
+            widget=dj_forms.DateInput(attrs={'class': 'form-control flatpickr', 'placeholder': 'إلى تاريخ'}),
+        )
         attrs["year"] = django_filters.ChoiceFilter(
             field_name=f"{date_field}__year",
             lookup_expr="exact",

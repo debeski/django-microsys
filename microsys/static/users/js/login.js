@@ -12,17 +12,4 @@ document.addEventListener("DOMContentLoaded", function() {
         usernameField.focus();
     }
 
-    // Handle Enter key press for form submission
-    var loginInputs = document.querySelectorAll(".login-input");
-    loginInputs.forEach(function(input) {
-        input.addEventListener("keydown", function(e) {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                var form = input.closest("form");
-                if (form) {
-                    form.submit();
-                }
-            }
-        });
-    });
 });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ APP_CONFIG.name|default:"FineStor" }} - {% block title %}{% endblock %}</title>
+    <title>{{ APP_CONFIG.name|default:"microSYS" }} - {% block title %}{% endblock %}</title>
     
     <script nonce="{{ request.csp_nonce }}">
         (function() {
@@ -37,7 +37,6 @@
     <link rel="stylesheet" href="{% static 'themes/main.css' %}">
     <link rel="stylesheet" href="{% static 'main/css/accessibility.css' %}">
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-    <link rel="manifest" href="{% static 'manifest.json' %}">
     <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192x192.png' %}">
     <link rel="icon" type="image/png" sizes="512x512" href="{% static 'icons/icon-512x512.png' %}">
     <meta name="csrf-token" content="{{ csrf_token }}">

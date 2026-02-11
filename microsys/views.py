@@ -53,6 +53,7 @@ def _get_m2m_through_defaults(model, field_name, request):
     except FieldDoesNotExist:
         return None
 
+    # Only M2M fields can have through tables
     if not getattr(field, "many_to_many", False):
         return None
 
@@ -62,6 +63,7 @@ def _get_m2m_through_defaults(model, field_name, request):
 
     defaults = {}
     if is_scope_enabled():
+        # Resolve scope from profile first, then direct user attribute
         scope = None
         if hasattr(request.user, 'profile') and getattr(request.user.profile, 'scope', None):
             scope = request.user.profile.scope
@@ -85,6 +87,7 @@ def _create_minimal_instance_from_post(model, data, request):
     field_map = {}
     missing_required = []
 
+    # Identify truly required fields (skip auto-managed and optional ones)
     for field in model._meta.fields:
         if field.primary_key or field.auto_created:
             continue
@@ -120,6 +123,7 @@ def _create_minimal_instance_from_post(model, data, request):
             user_scope = getattr(getattr(request.user, 'profile', None), 'scope', None)
             if not user_scope and hasattr(request.user, 'scope'):
                 user_scope = request.user.scope
+            # Non-superusers always get their scope forced; superusers only if unset
             if user_scope:
                 if not request.user.is_superuser:
                     instance.scope = user_scope
@@ -192,8 +196,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTa
     def get_queryset(self):
         # Apply the filter and order by any logic you need
         qs = super().get_queryset().order_by('date_joined')
-        # Exclude soft-deleted users (checked via profile now)
-        # We need to filter based on profile reverse relation
+        # Exclude soft-deleted users by checking profile's deleted_at
         qs = qs.filter(profile__deleted_at__isnull=True)
         
         # Hide superuser entries from non-superusers
@@ -206,6 +209,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTa
 
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)
+        # Hide scope column when scopes are off, or when user is already scoped
         if not is_scope_enabled():
             table.exclude = ('scope',)
         elif hasattr(self.request.user, 'profile') and self.request.user.profile.scope and not self.request.user.is_superuser:
@@ -221,7 +225,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTa
         context["users"] = user_filter.qs
         context["scope_enabled"] = scope_enabled
         
-        # Check if we can disable scopes (only if no users are assigned to any scope)
+        # Disabling scopes is only safe if no users are currently assigned to any scope
         can_toggle_scope = True
         if scope_enabled:
             can_toggle_scope = not User.objects.filter(profile__scope__isnull=False).exists()
@@ -239,7 +243,7 @@ def create_user(request):
             user = form.save(commit=False)
             # Auto-assign scope for non-superusers
             if not request.user.is_superuser and hasattr(request.user, 'profile') and request.user.profile.scope:
-                # This logic is handled inside form.save via passed params, but let's be safe
+                # This logic is handled inside form.save via passed params.
                 pass 
                 
             user = form.save() # Saves user + profile
@@ -309,11 +313,12 @@ def delete_user(request, pk):
         
         # Set deleted_at on profile
         Profile = apps.get_model('microsys', 'Profile')
+        # Use all_objects to include already-deleted profiles
         profile, created = Profile.all_objects.get_or_create(user=user)
         profile.deleted_at = timezone.now()
         profile.save()
         
-        # Free up the username by appending _del suffix
+        # Rename username to free it for reuse (e.g. admin -> admin_del, admin_del2)
         base_username = f"{user.username}_del"
         new_username = base_username
         counter = 2
@@ -342,6 +347,7 @@ class UserActivityLogView(LoginRequiredMixin, UserPassesTestMixin, SingleTableMi
     def get_queryset(self):
         # Order by timestamp descending by default
         qs = super().get_queryset().order_by('-timestamp')
+        # When scopes are disabled, defer the scope column to avoid loading unused data
         if not is_scope_enabled():
             try:
                 self.model._meta.get_field('scope')
@@ -398,7 +404,7 @@ class UserDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 def reset_password(request, pk):
     user = get_object_or_404(User, id=pk)
 
-    # 🚫 Block staff users from resetting superuser passwords
+    # Block staff users from resetting superuser passwords
     if user.is_superuser and not request.user.is_superuser:
         messages.error(request, "ليس لديك صلاحية لتعديل هذا الحساب!")
         return redirect('manage_users')
@@ -440,7 +446,7 @@ def user_profile(request):
         else:
             # Log form errors
             messages.error(request, "هناك خطأ في البيانات المدخلة")
-            print(password_form.errors)  # You can log or print errors here for debugging
+            print(password_form.errors)
 
     return render(request, 'microsys/profile/profile.html', {
         'user': user,
@@ -464,10 +470,9 @@ def edit_profile(request):
         form = UserProfileEditForm(instance=request.user)
     return render(request, 'microsys/profile/profile_edit.html', {'form': form})
 
+
 # Scope Management Views
 # ###########################
-
-
 @login_required
 @user_passes_test(is_superuser)
 def manage_scopes(request):
@@ -556,7 +561,7 @@ def toggle_scopes(request):
         except (json.JSONDecodeError, ValueError):
             pass
         
-        # Fallback to toggle if no explicit target provided
+        # If no explicit state was sent, invert the current state
         if target_enabled is None:
             target_enabled = not settings.is_enabled
         
@@ -577,7 +582,7 @@ def toggle_scopes(request):
 
 # Section Management Views
 # ###########################
-# View, and CRUD function for section models
+# Dynamic View and CRUD function for section and subsection models
 @login_required
 def core_models_view(request):
     """
@@ -604,7 +609,6 @@ def core_models_view(request):
         })
     
     # Store in session only when user explicitly changes tab via GET param
-    # This reduces session writes and prevents SessionInterrupted errors
     if request.GET.get('model'):
         request.session['last_active_model'] = model_param
     
@@ -632,6 +636,7 @@ def core_models_view(request):
         except selected_model.DoesNotExist:
             instance = None
 
+    # Build a cancel URL that preserves current filters/sort but drops the edit ID
     cancel_url = None
     if 'id' in request.GET:
         params = request.GET.copy()
@@ -644,6 +649,7 @@ def core_models_view(request):
 
     # Create form
     form = FormClass(request.POST or None, instance=instance)
+    # Auto-create a crispy helper if the form doesn't define one (marks it for layout generation later)
     if not hasattr(form, "helper") or form.helper is None:
         form.helper = FormHelper()
         form.helper.form_tag = False
@@ -674,7 +680,7 @@ def core_models_view(request):
         filter_obj = FilterClass(request.GET or None, queryset=queryset)
         queryset = filter_obj.qs
     
-    # Create and configure table
+    # Introspect table __init__ to see if it accepts model_name kwarg or **kwargs
     try:
         sig = inspect.signature(TableClass.__init__)
         params = sig.parameters
@@ -685,6 +691,7 @@ def core_models_view(request):
     except (TypeError, ValueError):
         accepts_model_name = False
 
+    # Pass model_name to constructor if supported, otherwise inject it as an attribute
     if accepts_model_name:
         table = TableClass(queryset, model_name=model_param)
     else:
@@ -693,6 +700,7 @@ def core_models_view(request):
             table.model_name = model_param
     RequestConfig(request, paginate={'per_page': 10}).configure(table)
 
+    # Merge 'scope' into existing excludes without duplicates for scoped non-superusers
     if is_scope_enabled() and user_scope and not request.user.is_superuser:
         existing_exclude = getattr(table, "exclude", None) or ()
         merged = list(dict.fromkeys(list(existing_exclude) + ["scope"]))
@@ -719,8 +727,7 @@ def core_models_view(request):
             form.fields[related_field].queryset = child_model.objects.all()
             form.fields[related_field].widget = forms.CheckboxSelectMultiple()
         
-        # Explicitly bind widget choices to the field's choice iterator
-        # This ensures the widget has access to queryset choices when iterating
+        # Sync widget choices with the field's queryset so CheckboxSelectMultiple renders correctly
         form.fields[related_field].widget.choices = form.fields[related_field].choices
 
         form.fields[related_field].modal_target = f"addSubsectionModal_{child_model_name}"
@@ -735,11 +742,13 @@ def core_models_view(request):
             except Exception:
                 pass
 
+        # Determine which subsection items are "locked" (have dependencies elsewhere)
         locked_ids = []
         if instance:
             try:
                 rel_manager = getattr(instance, related_field, None)
                 if rel_manager is not None:
+                    # Get the reverse accessor name so we can ignore the parent→child M2M itself
                     accessor = None
                     try:
                         field_obj = selected_model._meta.get_field(related_field)
@@ -810,6 +819,7 @@ def core_models_view(request):
             saved_instance.save()
             if hasattr(form, 'save_m2m'):
                 form.save_m2m()
+            # Manually set M2M subsection relations (with through_defaults for scoped through tables)
             for field_name in subsection_field_names:
                 if field_name in form.cleaned_data:
                     try:
@@ -823,6 +833,7 @@ def core_models_view(request):
                         pass
             return redirect('manage_sections')
 
+    # For auto-generated helpers, exclude subsection M2M fields from the crispy layout
     if getattr(form, "_auto_helper", False) and subsection_field_names:
         from crispy_forms.layout import Layout, Field
         form.helper.layout = Layout(
@@ -924,7 +935,7 @@ def add_subsection(request):
                 
             messages.success(request, f"تم إضافة {model._meta.verbose_name}: {instance}")
         else:
-            # Fallback for inline add when only a simple field (e.g. name) is provided
+            # Fallback: try creating from raw POST data if form validation fails (e.g. simple name-only models)
             instance, missing = _create_minimal_instance_from_post(model, request.POST, request)
             if instance:
                 if parent_model_name and parent_id and parent_field:
@@ -1145,7 +1156,7 @@ def options_view(request):
         except:
             pass
 
-    # Extract specs from README using regex
+    # Helper to pull version strings from README using regex capture groups
     def extract_spec(pattern):
         match = re.search(pattern, readme_content)
         return match.group(1).strip() if match else "N/A"
@@ -1154,7 +1165,7 @@ def options_view(request):
     api_reachable = False
     api_error = ""
     try:
-        # Use 127.0.0.1:8000 directly for reliable internal container check
+        # Hit the loopback address to verify the API is responding inside the container
         api_url = "http://127.0.0.1:8000/api/decrees/" 
         
         req = urllib.request.Request(api_url)
@@ -1207,4 +1218,4 @@ def options_view(request):
         'disk_used': f"{disk_used_gb:.1f}",
         'disk_percent': disk_percent,
     }
-    return render(request, 'options.html', context)
+    return render(request, 'microsys/options.html', context)

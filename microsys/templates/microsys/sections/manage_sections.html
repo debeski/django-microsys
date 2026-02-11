@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'microsys/base.html' %}
 {% load crispy_forms_tags %}
 {% load django_tables2 %}
 {% load static %}
@@ -178,10 +178,8 @@
 
 {% block scripts %}
     <link rel="stylesheet" href="{% static 'flatpickr/flatpickr.min.css' %}">
-    <link rel="stylesheet" href="{% static 'flatpickr/monthSelect/style.css' %}">
 
     <script src="{% static 'flatpickr/flatpickr.min.js' %}"></script>
-    <script src="{% static 'flatpickr/monthSelect/index.js' %}"></script>
     <script src="{% static 'flatpickr/locale/ar.js' %}"></script>
 
     {% if id_type %}
@@ -210,19 +208,11 @@
 
     <script nonce="{{ request.csp_nonce }}">
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Flatpickr on all elements with the class 'flatpickr'
-            flatpickr('#monthSelector', {
-                position: "auto center",
-                locale: "ar",
-                altInput: true, // Show the input field
-                altFormat: "Y F", //defaults to "F Y"
-                plugins: [
-                    new monthSelectPlugin({
-                    dateFormat: "Y-m-d", //defaults to "F Y"
-
-                    theme: "light" // defaults to "light"
-                    })
-                ],
+            // Initialize flatpickr date pickers for filter inputs
+            flatpickr('.flatpickr', {
+                locale: 'ar',
+                dateFormat: 'Y-m-d',
+                allowInput: true,
             });
         });
     </script>

@@ -245,7 +245,7 @@ class MyModel(ScopedModel):
 
 ### 4. Themes & Accessibility
 Built-in support for:
-- **Themes**: Dark / Light modes.
+- **Themes**: Dark / Light and colors.
 - **Accessibility Modes**:
   - High Contrast
   - Grayscale
@@ -272,6 +272,81 @@ Notes:
 - These attributes apply only to the auto-generated form/table.
 - If you provide a custom Form/Table class, it takes full precedence.
 
+## Templates & Theming
+
+### Base Template
+The system provides a robust base template located at `microsys/templates/microsys/base.html`.
+You can extend this template in your own views to maintain consistent layout and functionality:
+
+```html
+{% extends "microsys/base.html" %}
+
+{% block extra_head %}
+    <!-- Extra CSS or Meta tags -->
+{% endblock %}
+
+{% block content %}
+    <h1>Page Content</h1>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Extra JS scripts -->
+{% endblock %}
+```
+
+> **Note:** The base template automatically handles the sidebar, title bar, messages, and theme loading. Replacing it entirely will break core system functionality.
+
+### Theming
+- **Framework**: Built on **Bootstrap 5 (RTL)**.
+- **Colors**: The `primary` color automatically adapts to the selected theme. Secondary/Success/Danger colors are slightly desaturated for better visual ergonomics.
+- **Customization**:
+  - Use standard Bootstrap classes (`btn-primary`, `text-success`, etc.).
+  - Dark mode is supported out of the box. If you encounter issues, you can override styles via `extra_head` or report them.
+
+---
+
+## Dynamic Section Mode
+
+Microsys offers a powerful "Zero-Boilerplate" CRUD interface for managing auxiliary data models (like Departments, Categories, etc.).
+
+### How It Works
+1. **Mark Your Model**: Add `is_section = True` to your model (or Meta class).
+   ```python
+   class Department(ScopedModel):
+       name = models.CharField(...)
+       is_section = True
+   ```
+2. **Auto-Discovery**: The system automatically generates a management UI with:
+   - Searchable Table (with pagination & sorting)
+   - Add/Edit Modals (using Crispy Forms)
+   - Delete protection (checks for related records)
+   - Filters (Keyword search + Date ranges if applicable)
+
+   > **Note**: You can customize the auto-generated components by adding `form_exclude` and `table_exclude` lists to your model:
+   > ```python
+   > class Department(ScopedModel):
+   >     # ...
+   >     form_exclude = ['internal_notes']
+   >     table_exclude = ['internal_notes', 'created_at']
+   > ```
+
+### Auto Subsections (Parent-Child Relations)
+If a Section model has a `ManyToManyField` to another model that is **not** a standalone section (i.e. a "child" model), the system automatically nests it:
+
+```python
+class SubUnit(ScopedModel):  # Child model (no is_section=True)
+    name = models.CharField(...)
+
+class MainUnit(ScopedModel): # Parent section
+    is_section = True
+    sub_units = models.ManyToManyField(SubUnit)
+```
+
+**Result:**
+- When editing a `MainUnit`, you will see a list of `SubUnits`.
+- You can **Add/Edit/Delete** `SubUnits` directly from the `MainUnit` modal via AJAX.
+- This creates a seamless "Master-Detail" management experience without writing a single view or form.
+
 ## File Structure
 
 ```
@@ -296,3 +371,4 @@ microsys/
 | v1.2.0   | • PyPI name changed to `django-microsys` • Section model discovery hardened (dynamic app resolution, generic forms/tables/filters) • Scope fields now hide automatically when scopes are disabled • System sidebar group ships by default (configurable) • `is_staff` moved into the permissions UI |
 | v1.3.0   | • Fixed subsection display: subsections now show correctly regardless of user scope • Fixed SessionInterrupted error: reduced session writes in section management • Scope toggle now accepts explicit target state to prevent race conditions • Improved error messaging in Arabic for scope operations |
 | v1.4.0   | • Section table context menu: right-click on table rows for Edit/Delete actions • View Subsections modal: sections with M2M subsections show linked items • AJAX-based section deletion with related-record protection • Auto-generated tables now include row data attributes for JS binding |
+| v1.5.0   | • Auto-generated section filters now include date range pickers (from/to) with flatpickr integration • Added clarifying inline comments to complex view logic • Fixed login Enter key submission |
