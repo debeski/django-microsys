@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/django-microsys.svg)](https://pypi.org/project/django-microsys/)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/debeski/django-microsys/main/static/img/login_logo.webp" alt="microSys Logo" width="450"/>
+  <img src="https://github.com/debeski/django-microsys/blob/2e3b7007f07d7265b9e70a44bd388bddf137f811/microsys/static/img/login_logo.webp" alt="microSys Logo" width="450"/>
 </p>
 
 **Arabic** lightweight, reusable Django app providing comprehensive system integration services, including user management, profile extension, permissions, localization, dynamic sidebar, automated activity logging and more.
