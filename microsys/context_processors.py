@@ -148,7 +148,6 @@ def microsys_context(request):
 
     return context
 
-
 def clear_sidebar_cache():
     """
     Clear the sidebar items cache.

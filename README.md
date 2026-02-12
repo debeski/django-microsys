@@ -1,12 +1,12 @@
-# MicroSys - Arabic Django System Integration Services
+# micro - System Integration Service
 
 [![PyPI version](https://badge.fury.io/py/django-microsys.svg)](https://pypi.org/project/django-microsys/)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/debeski/django-microsys/main/static/img/login_logo.webp" alt="MicroSys Login Logo" width="450"/>
+  <img src="https://raw.githubusercontent.com/debeski/django-microsys/main/static/img/login_logo.webp" alt="microSys Logo" width="450"/>
 </p>
 
-**Arabic** lightweight, reusable Django app providing comprehensive system integration services, including user management, profile extension, permissions, localization, dynamic sidebar, and automated activity logging.
+**Arabic** lightweight, reusable Django app providing comprehensive system integration services, including user management, profile extension, permissions, localization, dynamic sidebar, automated activity logging and more.
 
 ## Requirements
 - **Must be installed on a fresh database.**
@@ -351,15 +351,28 @@ class MainUnit(ScopedModel): # Parent section
 
 ```
 microsys/
-├── models.py               # Profile, Scope, Logs
-├── views.py                # User management views
-├── forms.py                # User/Profile forms
-├── signals.py              # Auto-create profile logic
-├── context_processors.py   # Global variables & Scope
-├── middleware.py           # Request capture
-├── discovery.py            # Sidebar auto-discovery logic
-├── templates/              # microsys/ (flattened structure)
-└── static/                 # microsys/ (js/css/img)
+├── management/             # Custom Management commands.
+├── migrations/             # App Migrations.
+├── static/                 # microsys/ (js/css/img).
+├── templates/              # microsys/ (flattened structure).
+├── templatetags/           # Custom template tags.
+├── tests/                  # Development tests.
+├── admin.py                # Admin Panel Registration.
+├── api.py                  # Autofill Api Configuration, Permission Checker, Serializer.
+├── apps.py                 # Django App configuration.
+├── context_processors.py   # Branding, Scope, Sidebar order and Themes.
+├── discovery.py            # Sidebar auto-discovery logic.
+├── fetcher.py              # Universal Dynamic Downlolader.
+├── filters.py              # User and ActivityLog filters.
+├── forms.py                # User, Profile, Permissions, and Section forms
+├── managers.py             # ScopedModel Manager.
+├── middleware.py           # ActivityLog middleware.
+├── models.py               # Profile, Scope, Logs.
+├── signals.py              # Auto-create profile logic, Auto soft-delete logic, ActivityLog.
+├── tables.py               # User, ActivityLog, and Scope tables.
+├── urls.py                 # URL routing.
+├── utils.py                # Helping Dynamic functions.
+└── views.py                # User and Scope management, Dynamic Zero-Boilerplate Section management.
 ```
 
 ## Version History
@@ -368,7 +381,8 @@ microsys/
 |----------|---------|
 | v1.0.0   | • Initial release as pip package |
 | v1.1.0   | • URL restructure: auth at `/accounts/`, system at `/sys/` • Added `microsys_setup` and `microsys_check` management commands • Runtime configuration validation |
-| v1.2.0   | • PyPI name changed to `django-microsys` • Section model discovery hardened (dynamic app resolution, generic forms/tables/filters) • Scope fields now hide automatically when scopes are disabled • System sidebar group ships by default (configurable) • `is_staff` moved into the permissions UI |
+| v1.2.0   | • Name changed to `django-microsys` • Section model discovery hardened (dynamic app resolution, generic forms/tables/filters) • Scope fields now hide automatically when scopes are disabled • System sidebar group ships by default (configurable) • `is_staff` moved into the permissions UI |
 | v1.3.0   | • Fixed subsection display: subsections now show correctly regardless of user scope • Fixed SessionInterrupted error: reduced session writes in section management • Scope toggle now accepts explicit target state to prevent race conditions • Improved error messaging in Arabic for scope operations |
 | v1.4.0   | • Section table context menu: right-click on table rows for Edit/Delete actions • View Subsections modal: sections with M2M subsections show linked items • AJAX-based section deletion with related-record protection • Auto-generated tables now include row data attributes for JS binding |
 | v1.5.0   | • Auto-generated section filters now include date range pickers (from/to) with flatpickr integration • Added clarifying inline comments to complex view logic • Fixed login Enter key submission • Pypi Release |
+| v1.5.1   | • Fixed Readme file and added detailed instructions |
