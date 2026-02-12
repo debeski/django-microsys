@@ -9,14 +9,15 @@
 **Arabic** lightweight, reusable Django app providing comprehensive system integration services, including user management, profile extension, permissions, localization, dynamic sidebar, automated activity logging and more.
 
 ## Requirements
-- **Must be installed on a fresh database.**
 - Python 3.11+
-- Django 5.1+
+- Django 5.2+
 - django-crispy-forms 2.4+
-- django-tables2 2.7+
-- django-filter 24.3+
-- pillow 11.0+
+- crispy-bootstrap5 2025.5+
+- django-tables2 2.8+
+- django-filter 25+
+- django-health-check 3.20+
 - babel 2.1+
+- psutil
 
 ## Features
 - **System Integration**: Centralized management for users and system scopes.
@@ -42,7 +43,6 @@ pip install django-microsys
 1. **Add to `INSTALLED_APPS`:**
    ```python
    INSTALLED_APPS = [
-       'microsys',  # Preferably on top
        'django.contrib.admin',
        'django.contrib.auth',
        # ... dependencies
@@ -50,6 +50,8 @@ pip install django-microsys
        'crispy_bootstrap5',
        'django_filters',
        'django_tables2',
+
+       'microsys', # Place anywhere.
    ]
    ```
 
@@ -59,7 +61,7 @@ pip install django-microsys
    MIDDLEWARE = [
        # ...
        'django.contrib.auth.middleware.AuthenticationMiddleware',
-       # ...
+       # ... Must be below Auth Middleware
        'microsys.middleware.ActivityLogMiddleware',
    ]
    ```
@@ -254,55 +256,6 @@ Built-in support for:
   - Disable Animations
 - **Location**: Accessible via the User Options menu (`options.html`) and Sidebar toolbar.
 
-### 5. Sections (Auto Forms/Tables)
-When a section model does not provide a custom Form/Table class, microsys generates them automatically.
-You can exclude fields from those auto-generated classes by setting model attributes:
-
-```python
-class Department(models.Model):
-    name = models.CharField(...)
-    code = models.CharField(...)
-    internal_notes = models.TextField(...)
-
-    form_exclude = ["internal_notes"]
-    table_exclude = ["internal_notes"]
-```
-
-Notes:
-- These attributes apply only to the auto-generated form/table.
-- If you provide a custom Form/Table class, it takes full precedence.
-
-## Templates & Theming
-
-### Base Template
-The system provides a robust base template located at `microsys/templates/microsys/base.html`.
-You can extend this template in your own views to maintain consistent layout and functionality:
-
-```html
-{% extends "microsys/base.html" %}
-
-{% block extra_head %}
-    <!-- Extra CSS or Meta tags -->
-{% endblock %}
-
-{% block content %}
-    <h1>Page Content</h1>
-{% endblock %}
-
-{% block scripts %}
-    <!-- Extra JS scripts -->
-{% endblock %}
-```
-
-> **Note:** The base template automatically handles the sidebar, title bar, messages, and theme loading. Replacing it entirely will break core system functionality.
-
-### Theming
-- **Framework**: Built on **Bootstrap 5 (RTL)**.
-- **Colors**: The `primary` color automatically adapts to the selected theme. Secondary/Success/Danger colors are slightly desaturated for better visual ergonomics.
-- **Customization**:
-  - Use standard Bootstrap classes (`btn-primary`, `text-success`, etc.).
-  - Dark mode is supported out of the box. If you encounter issues, you can override styles via `extra_head` or report them.
-
 ---
 
 ## Dynamic Section Mode
@@ -346,6 +299,45 @@ class MainUnit(ScopedModel): # Parent section
 - When editing a `MainUnit`, you will see a list of `SubUnits`.
 - You can **Add/Edit/Delete** `SubUnits` directly from the `MainUnit` modal via AJAX.
 - This creates a seamless "Master-Detail" management experience without writing a single view or form.
+
+Notes:
+- These attributes apply only to the auto-generated form/table.
+- If you provide a custom Form/Table class, it takes full precedence.
+
+---
+
+## Templates & Theming
+
+### Base Template
+The system provides a robust base template located at `microsys/templates/microsys/base.html`.
+You can extend this template in your own views to maintain consistent layout and functionality:
+
+```html
+{% extends "microsys/base.html" %}
+
+{% block extra_head %}
+    <!-- Extra CSS or Meta tags -->
+{% endblock %}
+
+{% block content %}
+    <h1>Page Content</h1>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Extra JS scripts -->
+{% endblock %}
+```
+
+> **Note:** The base template automatically handles the sidebar, title bar, messages, and theme loading. Replacing it entirely will break core system functionality.
+
+### Theming
+- **Framework**: Built on **Bootstrap 5 (RTL)**.
+- **Colors**: The `primary` color automatically adapts to the selected theme. Secondary/Success/Danger colors are slightly desaturated for better visual ergonomics.
+- **Customization**:
+  - Use standard Bootstrap classes (`btn-primary`, `text-success`, etc.).
+  - Dark mode is supported out of the box. If you encounter issues, you can override styles via `extra_head` or report them.
+
+---
 
 ## File Structure
 
