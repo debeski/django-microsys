@@ -1,0 +1,58 @@
+.titlebar {
+    border-bottom: 1px solid #e1e8ed;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    height: var(--header-height);
+    display: flex;
+    align-items: center; /* Fix vertical alignment */
+    position: sticky;
+    top: 0;
+    z-index: 1050;
+}
+
+.titlebar p {
+    color: #2c3e50;
+    font-weight: 800;
+    transition: all 0.3s;
+    font-size: clamp(1.1rem, 1.4vw, 1.8rem);
+    margin: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+}
+
+
+.titlebar .btn-light {
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--primal) !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease;
+    border-radius: 8px !important;
+}
+
+.titlebar .btn-light:hover {
+    background-color: rgba(var(--primal-rgb), 0.08) !important;
+    color: var(--primal) !important;
+    transform: translateY(-1px);
+}
+
+.titlebar .login-title-btn {
+    border: none !important;
+}
+
+.titlebar .login-title-btn:hover {
+    border-color: rgba(var(--primal-rgb), 0.2) !important;
+}
+
+.titlebar img {
+    height: 42px;
+    width: auto;
+    padding: 4px;
+    border-radius: 8px;
+    margin-left: 10px;
+    transition: all 0.3s;
+}

@@ -1,0 +1,114 @@
+{% extends 'microsys/base.html' %}
+{% load django_tables2 %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}الملف الشخصي{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
+
+
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-10">
+        <div class="glass-profile">
+            <h1 class="page-title text-center display-6">
+                <i class="bi bi-person-circle me-2"></i> الملف الشخصي
+            </h1>
+
+            <div class="row align-items-start">
+                <!-- Profile Image Section -->
+                <div class="col-md-4 text-center mb-4 mb-md-0 border-start ps-md-4">
+                    <div class="profile-img-container mb-3">
+                        <img src="{% static 'img/default_profile.webp' %}" alt="Profile Image">
+                    </div>
+                    <h3 class="fw-bold text-primary mb-1">{{ user.full_name }}</h3>
+                </div>
+
+                <!-- Info Section -->
+                <div class="col-md-8 pe-md-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="info-label">اسم المستخدم</div>
+                                <div class="info-value">{{ user.username }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="info-label">البريد الإلكتروني</div>
+                                <div class="info-value">{{ user.email }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="info-label">الصلاحيات</div>
+                                <div class="info-value">
+                                    {% if user.is_superuser %}
+                                        مدير النظام
+                                    {% elif user.is_staff %}
+                                        مستخدم مسؤول
+                                    {% else %}
+                                        مستخدم عادي
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="info-label">رقم الهاتف</div>
+                                <div class="info-value">{{ user.phone|default:"-" }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="row mt-4 pt-3 border-top border-light">
+                        <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
+                            <a class="btn btn-success action-btn rounded-pill" href="{% url 'edit_profile' %}">
+                                <i class="bi bi-pencil-square h5 m-0"></i> 
+                                <span>تحديث البيانات</span>
+                            </a>
+                            
+                            <button type="button" class="btn btn-danger action-btn rounded-pill" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                                <i class="bi bi-shield-lock h5 m-0"></i>
+                                <span>تغيير كلمة المـرور</span>
+                            </button>
+                            
+                            <a href="{% url 'index' %}" class="btn btn-secondary action rounded-pill">
+                                <i class="bi bi-house-door h5 m-0"></i>
+                                <span>الرئيسية</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title fw-bold text-primary" id="resetPasswordModalLabel">
+                    <i class="bi bi-key me-2"></i> تغيير كلمة المرور
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ password_form|crispy }}
+                    <div class="d-grid mt-4">
+                        <button type="submit" name="change_password" class="btn btn-danger action-btn rounded-pill justify-content-center">
+                            تأكيد تغيير كلمة المرور
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -7,16 +7,16 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "micro_users"
-version = "1.6.2"
-description = "Arabic Django user management app with abstract user, permissions, and activity logging"
+name = "django_microsys"
+version = "1.5.1"
+description = "Django micro (System Integration Service) - an RTL Django Starter Pack, with Users Management, Interactive Sidebar, Permissions, Dynamic Section Management, Activity Logging, and more."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
     { name = "DeBeski", email = "debeski1@gmail.com" }
 ]
-keywords = ["django", "users", "permissions", "authentication"]
+keywords = ["django", "microsys", "permissions", "authentication"]
 
 # Dependencies
 dependencies = [
@@ -46,11 +46,11 @@ classifiers = [
 
 # Tell setuptools which packages to include
 [tool.setuptools.packages.find]
-include = ["users"]
+include = ["microsys"]
 
 # Include static/templates files (equivalent to include_package_data=True)
 [tool.setuptools]
 include-package-data = true
 
 [project.urls]
-Homepage = "https://github.com/debeski/micro-users"
+Homepage = "https://github.com/debeski/django-microsys"

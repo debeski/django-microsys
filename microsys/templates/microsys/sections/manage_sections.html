@@ -1,0 +1,224 @@
+{% extends 'microsys/base.html' %}
+{% load crispy_forms_tags %}
+{% load django_tables2 %}
+{% load static %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-12">
+            <h2 class="page-title"><i class="bi bi-diagram-3 me-2"></i> إدارة {% if active_model %} {{ ar_names }} {% endif %}</h2>
+        </div>
+    </div>
+
+    {# Tab Navigation for Section Models #}
+    {% if models %}
+    <ul class="nav nav-tabs" id="sectionTabs" role="tablist">
+        {% for model in models %}
+        <li class="nav-item" role="presentation">
+            <a class="nav-link {% if model.name == active_model %}active{% endif %}" 
+               href="?model={{ model.name }}"
+               role="tab">
+                {{ model.ar_names }} {% if model.name == active_model %}{{ model.count }}{% endif %}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {# Error Display #}
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    {# Form Card #}
+    {% if form %}
+    <div class="card border-light shadow-sm mb-5 no-print">
+        <!-- <div class="card-header text-center">
+            <h4 class="me-5">
+                {% if form.instance.id %}
+                    تعديل بيانات {{ form.instance.name }}
+                {% else %}
+                    اضافة {{ ar_name }} جديد
+                {% endif %}
+            </h4>
+        </div> -->
+        <div class="card-body mt-2">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% crispy form %}
+                {% if subsection_selects %}
+                    {% for sub in subsection_selects %}
+                        {% include 'microsys/sections/subsection_select.html' with field=sub.field locked_ids=sub.locked_ids parent_model=sub.parent_model parent_id=sub.parent_id parent_field=sub.parent_field child_model=sub.child_model add_url=sub.add_url edit_url_template=sub.edit_url_template delete_url_template=sub.delete_url_template %}
+                    {% endfor %}
+                {% endif %}
+                {% if show_form_actions %}
+                    {% if show_cancel and cancel_url %}
+                    <div class="d-flex mt-3">
+                        <button type="submit" class="btn btn-primary rounded-start-pill rounded-end-0">حفظ</button>
+                        <a href="{{ cancel_url }}" class="btn btn-outline-warning rounded-end-pill rounded-start-0">إلغاء</a>
+                    </div>
+                    {% else %}
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary rounded-pill">حفظ</button>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-12">
+            <h2 class="page-title"><i class="bi bi-text-paragraph me-2"></i> قائمة {% if active_model %} {{ ar_names }} {% endif %}</h2>
+        </div>
+    </div>
+
+    {# Table Card #}
+    {% if table %}
+    <div class="card border-light shadow-sm pt-2">
+        <!-- <div class="card-header text-center">
+            <h4 class="me-5">قائمة {{ ar_names }}</h4>
+        </div> -->
+        <div class="card-body mt-2">
+            {% if filter %}
+            <div class="no-print">
+                {% crispy filter.form %}
+            </div>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table table %}
+            </div>
+        </div>
+    </div>
+    {% elif not error %}
+        <h3 class="mt-4">حدث خطأ ما!</h3>
+    {% endif %}
+
+    {# Dynamic Subsection Modals #}
+    {% for subsection in subsection_forms %}
+    <div class="modal fade" id="addSubsectionModal_{{ subsection.name }}" tabindex="-1" aria-labelledby="addSubsectionModalLabel_{{ subsection.name }}" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addSubsectionModalLabel_{{ subsection.name }}">إضافة {{ subsection.verbose_name }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            {% crispy subsection.form %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {# Hidden form for deleting subsections #}
+    <form id="deleteSubsectionForm" method="post" action="" style="display: none;">
+        {% csrf_token %}
+    </form>
+
+    {# Section Context Menu (for table rows) #}
+    <div id="sectionContextMenu" class="context-menu" style="display:none">
+        <button type="button" class="context-menu-item" data-action="edit">
+            <i class="bi bi-pencil"></i> تعديل
+        </button>
+        {% if has_subsections %}
+        <button type="button" class="context-menu-item" data-action="view-subsections">
+            <i class="bi bi-diagram-3"></i> عرض الأقسام الفرعية
+        </button>
+        {% endif %}
+        <div class="context-menu-divider"></div>
+        <button type="button" class="context-menu-item text-danger" data-action="delete">
+            <i class="bi bi-trash"></i> حذف
+        </button>
+    </div>
+
+    {# View Subsections Modal #}
+    {% if has_subsections %}
+    <div class="modal fade" id="viewSubsectionsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">الأقسام الفرعية</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="viewSubsectionsModalBody">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Hidden delete form for sections #}
+    <form id="deleteSectionForm" method="post" action="" style="display: none;">
+        {% csrf_token %}
+    </form>
+
+    {# Section data for JS #}
+    <script type="application/json" id="sectionData">
+    {
+        "model": "{{ active_model }}",
+        "editUrlTemplate": "{% url 'manage_sections' %}?model={{ active_model }}&id={id}",
+        "deleteUrl": "{% url 'delete_section' %}",
+        "subsectionsUrl": "{% url 'get_section_subsections' %}",
+        "hasSubsections": {% if has_subsections %}true{% else %}false{% endif %},
+        "csrf": "{{ csrf_token }}"
+    }
+    </script>
+
+{% endblock %}
+
+{% block scripts %}
+    <link rel="stylesheet" href="{% static 'flatpickr/flatpickr.min.css' %}">
+
+    <script src="{% static 'flatpickr/flatpickr.min.js' %}"></script>
+    <script src="{% static 'flatpickr/locale/ar.js' %}"></script>
+
+    {% if id_type %}
+    <script nonce="{{ request.csp_nonce }}">
+        document.getElementById('id_type').addEventListener('change', function() {
+            var type = this.options[this.selectedIndex].text;  // Get the selected Arabic text
+            var nameField = document.getElementById('id_name');
+            nameField.value = type + ' ';  // Set the name field to the title followed by a space
+            nameField.focus();  // Move the focus to the name field
+            nameField.setSelectionRange(nameField.value.length, nameField.value.length);  // Place cursor at the end
+        });
+    </script>
+    {% endif %}
+
+    {% if id_subtype %}
+    <script nonce="{{ request.csp_nonce }}">
+        document.getElementById('id_subtype').addEventListener('change', function() {
+            var type = this.options[this.selectedIndex].text;  // Get the selected Arabic text
+            var nameField = document.getElementById('id_subname');
+            nameField.value = type + ' ';  // Set the name field to the title followed by a space
+            nameField.focus();  // Move the focus to the name field
+            nameField.setSelectionRange(nameField.value.length, nameField.value.length);  // Place cursor at the end
+        });
+    </script>
+    {% endif %}
+
+    <script nonce="{{ request.csp_nonce }}">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize flatpickr date pickers for filter inputs
+            flatpickr('.flatpickr', {
+                locale: 'ar',
+                dateFormat: 'Y-m-d',
+                allowInput: true,
+            });
+        });
+    </script>
+
+    {# Context Menu for Section Tables #}
+    <link rel="stylesheet" href="{% static 'sections/css/context_menu.css' %}">
+    <script src="{% static 'sections/js/context_menu.js' %}"></script>
+
+{% endblock %}

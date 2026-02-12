@@ -19,6 +19,7 @@ imports/
 venv/
 dist/
 *.egg-info/
+build
 
 # Ignore celery-related files
 celerybeat-schedule

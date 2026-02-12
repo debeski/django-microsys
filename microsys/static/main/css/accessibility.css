@@ -1,0 +1,94 @@
+/* Accessibility Modes */
+
+/* High Contrast Mode */
+/* High Contrast Mode */
+:root.accessibility-high-contrast {
+    /* Increase contrast filter significantly and remove color saturation to emulate rigorous high contrast */
+    filter: contrast(175%) !important;
+}
+
+:root.accessibility-high-contrast body {
+    background-color: #fff !important; /* Ensure white background */
+}
+
+/* Force dark text for readability */
+:root.accessibility-high-contrast *:not(.btn):not(.badge):not(.text-white):not(.bg-dark) {
+    color: #000 !important;
+}
+
+/* Add strong borders to all buttons to make them distinct */
+:root.accessibility-high-contrast .btn, 
+:root.accessibility-high-contrast button,
+:root.accessibility-high-contrast .tutorial-btn, 
+:root.accessibility-high-contrast input[type="submit"],
+:root.accessibility-high-contrast input[type="button"],
+:root.accessibility-high-contrast input[type="reset"] {
+    border: 3px solid #000 !important;
+    box-shadow: none !important; /* Remove subtle shadows */
+}
+
+/* Ensure links are distinct */
+:root.accessibility-high-contrast a {
+    text-decoration: underline !important;
+    font-weight: bold !important;
+    color: #000 !important;
+}
+
+/* Fix specific inputs borders */
+:root.accessibility-high-contrast input, 
+:root.accessibility-high-contrast select, 
+:root.accessibility-high-contrast textarea {
+    border: 2px solid #000 !important;
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+/* Ensure borders on other elements */
+:root.accessibility-high-contrast * {
+    border-color: #000 !important;
+}
+
+/* Grayscale Mode */
+:root.accessibility-grayscale {
+    filter: grayscale(100%) !important;
+}
+
+/* Invert Mode */
+:root.accessibility-invert {
+    filter: invert(100%) hue-rotate(180deg) !important;
+}
+
+/* Large Text Mode (Zoom x1.5) */
+:root.accessibility-large-text {
+    zoom: 150% !important;
+}
+
+:root.accessibility-large-text body {
+    min-height: 66.666vh !important;
+    height: 66.666vh !important;
+    overflow: hidden !important;
+}
+
+:root.accessibility-large-text #mainContent {
+    height: calc(66.666vh - var(--header-height, 60px)) !important;
+    max-height: calc(66.666vh - var(--header-height, 60px)) !important;
+}
+
+/* Disable Animations Mode */
+:root.accessibility-no-animations *,
+:root.accessibility-no-animations *::before,
+:root.accessibility-no-animations *::after {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Specific Color Blindness Simulations (using matrix filters if needed) */
+/* For now, sticking to High Contrast and Grayscale as they are most requested */
+
+.accessibility-btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.accessibility-btn:hover {
+    transform: scale(1.05);
+}

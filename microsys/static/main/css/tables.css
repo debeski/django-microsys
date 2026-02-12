@@ -1,0 +1,119 @@
+
+.table>tbody>tr:nth-child(odd)>td, 
+.table>tbody>tr:nth-child(odd)>th {
+    --bs-table-bg-type: white;
+}
+
+.table>tbody>tr:nth-child(even)>td, 
+.table>tbody>tr:nth-child(even)>th {
+    --bs-table-bg-type: var(--table-row);
+}
+
+.table thead th {
+    background-color: var(--table-row);
+    /* font-size: 20px; REMOVED to allow normal sizing */
+    transition: font-size 0.3s;
+}
+
+@media (max-width: 900px) {
+    .table thead th {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 900px) {
+    .table tbody tr td,
+    .table tbody tr th {
+        font-size: 15px !important;
+    }
+}
+
+/* Theme-based Hover State */
+.table-hover > tbody > tr:hover > * {
+    --bs-table-bg-state: var(--table-row-hover) !important;
+    background-color: var(--table-row-hover) !important;
+    cursor: default !important;
+}
+
+.table tbody tr td,
+.table tbody tr th {
+    border-style: none;
+    font-size: 18px;
+    transition: font-size 0.3s;
+}
+
+th a {
+    text-decoration: none;
+    color: inherit;
+}
+
+th a::after {
+    font-family: "bootstrap-icons";
+    content: "\F238";
+    font-size: 14px;
+    margin-right: 3px;
+}
+
+th.asc a::after {
+    content: "\F235";
+}
+
+th.desc a::after {
+    content: "\F229";
+}
+
+/* Fix for table-danger row coloring to override nth-child striping */
+.table > tbody > tr.table-danger > td,
+.table > tbody > tr.table-danger > th {
+    --bs-table-bg-type: #f8d7da !important;
+}
+
+/* Specific hover state for table-danger (Disabled Hover) - Increased Specificity */
+.table-hover > tbody > tr.table-danger:hover > * {
+    --bs-table-accent-bg: #f8d7da !important;
+    background-color: #f8d7da !important;
+    color: inherit !important;
+    cursor: default !important;
+    box-shadow: none !important;
+    border-color: inherit !important;
+}
+
+.sticky-col {
+    position: sticky;
+    left: 0;
+    background-color: var(--table-row) !important;
+    z-index: 100;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > .sticky-col {
+    background-color: var(--bs-table-accent-bg) !important;
+}
+
+/* Strikethrough for deleted rows */
+tr.row-deleted {
+    color: #aeaeae !important;
+}
+
+/* Override bootstrap table striping for deleted rows */
+.table > tbody > tr.row-deleted > td,
+.table > tbody > tr.row-deleted > th {
+    --bs-table-bg-type: rgba(0, 0, 0, 0.02) !important;
+    color: #aeaeae !important;
+}
+
+tr.row-deleted td {
+    position: relative;
+}
+
+tr.row-deleted td::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: #aeaeae;
+    z-index: 1;
+    pointer-events: none;
+}

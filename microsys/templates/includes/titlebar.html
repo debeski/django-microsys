@@ -1,0 +1,64 @@
+{% load static %}
+<!-- Title Bar -->
+<div class="titlebar shadow-sm d-flex justify-content-between align-items-center no-print">
+    <div class="d-flex align-items-center flex-grow-1" style="min-width: 0;">
+        {% if request.user.is_authenticated %}
+            <button id="sidebarToggle" class="sidebar-toggle ms-2 rounded flex-shrink-0">☰</button>
+        {% endif %}
+        <a class="align-items-center d-flex text-decoration-none text-inherit w-100" href="{% if user.is_authenticated %}{{ APP_CONFIG.home_url }}{% else %}/{% endif %}" style="min-width: 0;">
+            <img src="{{ APP_CONFIG.logo_url|default:'/static/img/base_logo.webp' }}" alt="Logo" class="flex-shrink-0">
+            <!-- Responsive Title with Smart Truncation -->
+            <p class="ms-2 mb-0 align-items-center d-flex text-truncate" style="flex-shrink: 1; min-width: 0;">
+                <span class="text-truncate">{{ APP_CONFIG.name|default:"microSYS" }}{% if user.scope %} - {{ user.scope.name }}{% endif %}</span>
+                &nbsp;&nbsp;{% block header %}{% endblock %}
+            </p>
+        </a>
+    </div>
+        <!-- The Login Button -->
+    <div class="pe-2 d-flex align-items-center">
+        <!-- Extra Titlebar Controls (passed via context variable) -->
+        {% if show_autofill_toggle %}
+            {% include 'includes/autofill_toggle.html' %}
+        {% endif %}
+        <!-- Tutorial Trigger -->
+            {% if user.is_authenticated %}
+        <button id="start-tour" class="btn btn-sm btn-light me-2 text-primary" title="جولة تعريفية">
+            <i class="bi bi-question-circle-fill"></i> <span class="d-none d-sm-inline">مساعدة</span>
+        </button>
+        {% endif %}
+
+    {% if user.is_authenticated %}
+        <!-- Dropdown Button and Menu for Authenticated User -->
+        <div class="dropdown">
+            <button class="btn btn-sm btn-light dropdown-toggle login-title-btn" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle">&nbsp;</i> <span class="d-none d-sm-inline">{{ user.username }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="userDropdown">
+                <li>
+                    <a class="dropdown-item" href="{% url 'user_profile' %}">
+                        <span>الملف الشخصي</span>
+                        <i class="bi bi-person-lines-fill"></i>
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form method="POST" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item text-danger">
+                            <span>تسجيل الخروج</span>
+                            <i class="bi bi-box-arrow-left"></i>
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    {% else %}
+        <!-- Login Button for Unauthenticated Users (hidden on login page) -->
+        {% if request.resolver_match.url_name != 'login' %}
+        <a href="{% url 'login' %}" class="btn btn-sm btn-light login-title-btn me-2">
+            <span class="d-none d-sm-inline">تسجيل الدخول</span> &nbsp; <i class="bi bi-box-arrow-in-right"></i>
+        </a>
+        {% endif %}
+    {% endif %}
+    </div>
+</div>

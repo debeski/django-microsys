@@ -1,0 +1,62 @@
+{% extends 'microsys/base.html' %}
+{% load static %}
+{% block title %}تسجيل الدخول{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'users/css/login.css' %}">
+{% if theme %}
+<style>
+  :root {
+    {% if theme.selection_bg %}--selection-bg: {{ theme.selection_bg }} !important;{% endif %}
+    {% if theme.selection_moz_bg %}--selection-moz-bg: {{ theme.selection_moz_bg }} !important;{% endif %}
+    {% if theme.left_bg %}--left-bg: {{ theme.left_bg }} !important;{% endif %}
+    {% if theme.left_shadow %}--left-shadow: {{ theme.left_shadow }} !important;{% endif %}
+    {% if theme.right_bg %}--right-bg: {{ theme.right_bg }} !important;{% endif %}
+    {% if theme.right_shadow %}--right-shadow: {{ theme.right_shadow }} !important;{% endif %}
+    {% if theme.right_text %}--right-text: {{ theme.right_text }} !important;{% endif %}
+    {% if theme.label_color %}--label-color: {{ theme.label_color }} !important;{% endif %}
+    {% if theme.input_text %}--input-text: {{ theme.input_text }} !important;{% endif %}
+    {% if theme.submit_color %}--submit-color: {{ theme.submit_color }} !important;{% endif %}
+    {% if theme.submit_focus %}--submit-focus: {{ theme.submit_focus }} !important;{% endif %}
+    {% if theme.submit_active %}--submit-active: {{ theme.submit_active }} !important;{% endif %}
+    {% if theme.gradient_start %}--gradient-start: {{ theme.gradient_start }} !important;{% endif %}
+    {% if theme.gradient_end %}--gradient-end: {{ theme.gradient_end }} !important;{% endif %}
+  }
+</style>
+{% endif %}
+
+<div class="page">
+    <div class="container">
+      <div class="left">
+        <div class="text-center mb-4 d-md-none">
+            <img src="{% static 'img/login_logo.webp' %}" alt="Login Logo" class="logo-img">
+        </div>
+        <form action="{% url 'login' %}" method="POST" class="w-100">
+            {% csrf_token %}
+            {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+            <div class="form m-0 mx-auto">
+                <div class="mb-4">
+                    <label for="username">اسم المستخدم</label>
+                    <input type="text" class="login-input" id="username" name="username" autofocus required>
+                </div>
+        
+                <div class="mb-4">
+                    <label for="password">كلمة المرور</label>
+                    <input type="password" class="login-input" id="password" name="password" required>
+                </div>
+        
+                <button type="submit" class="w-100 btn btn-lg mt-3" id="submit">دخول</button>
+            </div>
+        </form>
+      </div>
+      
+      <div class="right d-none d-md-flex">
+          <img src="{% static 'img/login_logo.webp' %}" alt="Login Logo" class="logo-img">
+      </div>
+    </div>
+  </div>
+
+<script src="{% static 'users/js/login.js' %}" nonce="{{ request.csp_nonce }}"></script>
+{% endblock %}

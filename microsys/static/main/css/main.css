@@ -1,0 +1,294 @@
+/* Themes System refactored to sidebar app */
+
+* {
+    box-sizing: border-box;
+    font-family: 'Shabwa', sans-serif !important;
+    direction: rtl;
+}
+
+:root {
+    --granour: #169c72;
+    --header-height: 60px;
+    /* Fallback Default Theme Variables (Light) */
+    --title: #334155; 
+    --body: #f8fafc;   
+    --htitle: #64748b; 
+    --hbody: #f1f5f9;  
+    --table-row: #ffffff;
+    --table-row-hover: #f1f5f9;
+    --primal: #475569; 
+    --primal_dark: #334155; 
+    --primal-rgb: 71, 85, 105;
+    /* Glass Input Variables */
+    --glass-input-bg: rgba(255, 255, 255, 0.6);
+    --glass-input-focus-bg: rgba(255, 255, 255, 0.6); /* No opacity change on focus */
+    --glass-input-border: rgba(0, 0, 0, 0.1);
+}
+
+:root .btn-secondary .bi,
+:root .btn-success .bi,
+:root .btn-info .bi,
+:root .btn-warning .bi,
+:root .btn-danger .bi {
+    color: #000 !important; /* Force black icons */
+}
+
+@font-face {
+    font-family: 'Shabwa';
+    font-weight: 400; /* Regular */
+    font-style: normal;
+    src: url('../fonts/Shabwa.woff2') format('woff2');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Shabwa';
+    font-weight: 600; /* Medium */
+    font-style: normal;
+    src: url('../fonts/Shabwa-Medium.woff2') format('woff2');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Shabwa';
+    font-weight: 800; /* Bold */
+    font-style: normal;
+    src: url('../fonts/Shabwa-Bold.woff2') format('woff2');
+    font-display: swap;
+}
+
+.glass-input {
+    background-color: var(--glass-input-bg) !important;
+    border: 1px solid var(--glass-input-border) !important;
+    border-radius: 8px !important;
+    transition: border-color 0.3s, box-shadow 0.3s !important;
+    font-size: 0.9rem !important;
+    padding: 0.4rem 0.8rem !important;
+}
+
+.glass-input:focus {
+    background-color: var(--glass-input-focus-bg) !important;
+    border-color: var(--glass-input-border) !important; /* Keep border same as resting state */
+    box-shadow: none !important; /* Disabled focus highlight globally */
+}
+
+/* Global specific overrides for selection inputs */
+select:focus,
+.form-select:focus, 
+.form-control:focus {
+    box-shadow: none !important;
+    outline: none !important; /* Remove native focus outline */
+    border-color: #ced4da !important; /* Prevent blue highlight, keep default gray */
+}
+
+/* Remove dropdown arrow from glass inputs */
+select.glass-input, 
+.form-select.glass-input {
+    background-image: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    padding-right: 0.8rem !important; /* Reset padding reserved for arrow */
+}
+
+.bg-primary {
+    background-color: var(--primal) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--primal) !important;
+    border-color: var(--primal) !important;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: var(--primal) !important;
+    border-color: var(--primal) !important;
+}
+
+/* Explicit btn-check support for all themes */
+.btn-check:checked + .btn {
+    background-color: var(--primal) !important;
+    border-color: var(--primal) !important;
+    color: #fff !important;
+}
+
+.btn-check:checked + .btn-outline-primary {
+    background-color: var(--primal) !important;
+    border-color: var(--primal) !important;
+    color: #fff !important;
+}
+
+/* Active Theme Selection Ring */
+.theme-preview {
+    transition: all 0.2s ease;
+}
+.theme-preview.active {
+    box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px var(--primal) !important;
+    transform: scale(1.1);
+}
+
+.granour {
+    color: var(--granour) !important;
+}
+
+.primal {
+    color: var(--primal) !important;
+}
+
+.primal:hover {
+    color: var(--primal_dark) !important;
+}
+
+input[dir="rtl"] {
+    text-align: right;
+    direction: rtl;
+    unicode-bidi: plaintext;
+}
+
+input[dir="rtl"]::placeholder {
+    text-align: right;
+    color: #484848;
+}
+
+input[type="number"] {
+    text-align: right !important;
+    direction: rtl !important;
+    unicode-bidi: plaintext !important;
+}
+
+input[type="email"] {
+    text-align: right !important;
+    direction: rtl !important;
+    unicode-bidi: plaintext !important;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100% !important;
+    background-color: var(--body);
+}
+
+@media print {
+    .new-page {
+        page-break-inside: avoid;
+    }
+    *, .shadow, .shadow-sm {
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+    
+    body, html, .col, .row, .flex-grow-1, .d-flex {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+
+    #mainContent {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        position: static !important;
+    }
+
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+
+    /* Keep at the bottom to ensure display:none wins over display:block utility classes */
+    .no-print, #sidebar, .sidebar-container, .sidebar-ghost, 
+    .pagination, .dropdown, .dropup, button, .btn {
+        display: none !important;
+    }
+}
+
+/* Removed: .card-body span { cursor: default; } - conflicted with stretched-link */
+
+.checkbox-inline {
+    display:inline-flex;
+    margin-left: 5px;
+    margin-right: 10px;
+}
+
+.alert {
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#id_year {
+    direction: rtl;
+}
+
+.option-separator {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.option-separator:last-of-type {
+    border-bottom: none;
+}
+
+form label {
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.is-placeholder {
+    background-color: rgba(255, 0, 0, 0.1);
+    font-weight: bold;
+}
+
+.nav-link {
+    color: black;
+}
+
+#mainContent {
+    height: calc(100vh - var(--header-height, 60px));
+    max-height: calc(100vh - var(--header-height, 60px));
+    overflow-y: auto;
+}
+
+.disabler {
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}
+
+.base-link {
+    color: var(--title) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: whitesmoke !important;
+    color: var(--bs-table-striped-color);
+}
+
+.option-section {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.page-title {
+    display: none;
+    font-weight: 800;
+    color: var(--title);
+    margin-bottom: 20px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+
+@media (max-width: 767px) {
+    .page-title {
+        display: block;
+    }
+}
+

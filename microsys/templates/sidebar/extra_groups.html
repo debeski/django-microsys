@@ -1,0 +1,34 @@
+{% if groups %}
+<div class="accordion accordion-flush" id="sidebarExtraAccordion">
+{% for group_name, group in groups.items %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button{% if not group.has_active %} collapsed{% endif %}" 
+                    type="button" 
+                    data-bs-toggle="collapse" 
+                    data-bs-target="#extraGroup{{ forloop.counter }}" 
+                    aria-expanded="{% if group.has_active %}true{% else %}false{% endif %}" 
+                    aria-controls="extraGroup{{ forloop.counter }}">
+                <i class="bi {{ group.icon }} me-2" style="font-size: 24px;"></i>
+                <span>{{ group_name }}</span>
+            </button>
+        </h2>
+        <div id="extraGroup{{ forloop.counter }}" 
+             class="accordion-collapse collapse{% if group.has_active %} show{% endif %}" 
+             data-bs-parent="#sidebarExtraAccordion">
+            <div class="accordion-body p-0" data-group-name="{{ group_name|slugify }}">
+                {% for item in group.items %}
+                <a href="{{ item.url }}" 
+                   class="list-group-item list-group-item-action{% if item.active %} active{% endif %}"
+                   data-url-name="{{ item.url_name }}">
+                    <i class="bi {{ item.icon }} me-2" style="font-size: 24px;"></i>
+                    <span>{{ item.label }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>
+{% endif %}
+

@@ -1,0 +1,52 @@
+/* --- Blue Theme (Aqua - Formerly Light) --- */
+:root.theme-blue {
+    --title: #1e4f99;
+    --body: #f6f7f98b;
+    --htitle: #256cb2;
+    --hbody: #dee8ffdb;
+    --table-row: #e7f1fb;
+    --table-row-hover: #dfeaf5;
+    --primal: #2363c3;
+    --primal_dark: #1e4f99;
+    --primal-rgb: 35, 99, 195;
+    --btn-primary-shadow: rgba(35, 99, 195, 0.4);
+    --nav-item-color: var(--table-row);
+
+    /* Login Theme Variables */
+    --bg-gradient: linear-gradient(135deg, #f6f7f9 0%, #dee8ff 100%);
+    --right-bg: var(--title);
+    --primary-color: var(--primal);
+
+    /* Bootstrap Overrides */
+    --bs-primary: var(--primal);
+    --bs-primary-rgb: var(--primal-rgb);
+    --bs-btn-bg: var(--primal);
+    --bs-btn-border-color: var(--primal);
+    --bs-btn-hover-bg: var(--primal_dark);
+    --bs-btn-hover-border-color: var(--primal_dark);
+    --bs-link-color: var(--primal);
+    --bs-link-hover-color: var(--primal_dark);
+}
+:root.theme-blue .titlebar {
+    background: linear-gradient(90deg, #ffffff 10%, #e7f1fb 90%) !important;
+}
+:root.theme-blue #sidebar {
+    background: linear-gradient(180deg, #ffffff 10%, #e7f1fb 100%) !important;
+    border-left: 1px solid #dfeaf5 !important;
+}
+
+:root.theme-blue .page .right {
+    background: var(--htitle) !important; /* Darker logo container */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    color: #e2e8f0 !important;
+}
+
+/* Dropdown & Button Overrides for Blue */
+:root.theme-blue .dropdown-item:hover {
+    background-color: rgba(35, 99, 195, 0.08) !important;
+    color: #1e4f99 !important;
+}
+:root.theme-blue .titlebar .btn-light:hover {
+    background-color: rgba(35, 99, 195, 0.08) !important;
+    color: #1e4f99 !important;
+}

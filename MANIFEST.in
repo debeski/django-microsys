@@ -5,13 +5,13 @@ include README.md
 include LICENSE
 
 # Include all files inside the users package
-recursive-include users *
+recursive-include microsys *
 
 # If you have templates inside the users app
-recursive-include users/templates *
+recursive-include microsys/templates *
 
 # If you have static files
-recursive-include users/static *
+recursive-include microsys/static *
 
 # Make sure no unnecessary Python cache files are included
 exclude *.pyc

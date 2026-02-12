@@ -1,0 +1,7 @@
+    {% extends "sidebar/main.html" %}
+    {% load sidebar_tags %}
+
+    {% block items %}
+        {% auto_sidebar %}
+        {% extra_sidebar %}
+    {% endblock %}

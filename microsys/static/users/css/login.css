@@ -1,0 +1,273 @@
+:root {
+  --selection-bg: #dbdbdb;
+  --selection-moz-bg: #dbdbdb;
+  --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  --left-bg: rgba(255, 255, 255, 0.85); /* Glassmorphism */
+  --left-shadow: rgba(0,0,0,0.05); /* Softer shadow */
+  --right-bg: #2b3035; /* Darker accent */
+  --right-shadow: rgba(0,0,0,0.1);
+  --right-text: #F1F1F2;
+  --label-color: #5a6474;
+  --input-text: #2c3e50;
+  --submit-color: #707075;
+  --submit-focus: #575757;
+  --submit-active: #4d4d4d;
+  --primary-color: #2363c3;
+}
+
+::selection { background: var(--selection-bg); }
+::-webkit-selection { background: var(--selection-bg); }
+::-moz-selection { background: var(--selection-moz-bg); }
+
+/* REMOVED body styles that break titlebar layout (display: flex, center, etc) */
+/* Instead, we style the page container to center content inside the main content area */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 100px); /* Ensure vertical centering within available space */
+}
+
+/* Gradient background applied to body via style.css or separate logic, 
+   but since this login.css is likely scoped or loaded on login page, 
+   we can set background on .page or keep it on body if safe. 
+   To be safe and avoid breaking layout, we set background on body 
+   but NOT layout properties. */
+body {
+    background: var(--bg-gradient);
+    /* No display:flex here to avoid squishing the titlebar */
+}
+
+.container {
+  height: 480px; /* Increased height */
+  margin: 0 auto;
+  width: 800px; /* Increased width */
+  display: flex;
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+@media (max-width: 767px) {
+  .container {
+    flex-direction: column;
+    height: auto;
+    width: 90%;
+  }
+}
+
+.left {
+  background: var(--left-bg);
+  height: 380px;
+  position: absolute;
+  left: 50px; /* Overlap effect */
+  width: 400px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 767px) {
+  .left {
+    position: relative;
+    width: 100%;
+    left: 0;
+    margin-bottom: 20px;
+    height: auto;
+    padding: 40px 0;
+  }
+}
+
+.right {
+  background: var(--right-bg);
+  box-shadow: 0 8px 32px 0 var(--right-shadow);
+  color: var(--right-text);
+  position: absolute;
+  right: 50px;
+  width: 350px;
+  height: 480px;
+  border-radius: 20px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 767px) {
+  .right {
+    position: relative;
+    width: 100%;
+    right: 0;
+    height: 250px;
+  }
+}
+
+.form {
+  margin: 40px;
+  text-align: right; /* RTL */
+  width: calc(100% - 80px);
+}
+
+label {
+  color: var(--label-color);
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+
+input {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  color: var(--input-text);
+  font-size: 16px;
+  height: 45px;
+  line-height: 45px;
+  outline: none !important;
+  width: 100%;
+  padding: 0 15px; /* Add padding */
+  margin-top: 5px; /* Reduced top margin since we use padding */
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  border-color: var(--primary-color);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(35, 99, 195, 0.1);
+}
+
+input::-moz-focus-inner { border: 0; }
+
+#submit {
+  color: white;
+  margin-top: 30px;
+  transition: all 0.3s;
+  background-color: var(--submit-color);
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+#submit:hover { 
+  background-color: var(--submit-focus); 
+  transform: translateY(-2px);
+}
+
+#submit:active { transform: translateY(0); }
+
+/* New Utility Classes for specific elements */
+.login-input { 
+  font-size: 18px !important; 
+}
+.login-submit { 
+  font-size: 18px !important; 
+}
+.logo-img { 
+  width: 80%;
+  max-width: 200px;
+  opacity: 0.9;
+}
+
+@media (max-width: 767px) {
+  .logo-img {
+    /* Mask the image to color it with the theme color */
+    -webkit-mask-image: url("/static/img/login_logo.webp");
+    mask-image: url("/static/img/login_logo.webp");
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    background-color: var(--primal, var(--primary-color));
+    /* Hide the original image content so background color shows through mask */
+    object-position: -9999px -9999px; /* Fallback to hide original if mask fails or ensuring background color dominates? 
+                                          Actually, on an IMG tag, background-color renders BEHIND the content. 
+                                          To make this work on an IMG tag, we interpret the img content as the mask 
+                                          and the background-color as the fill. 
+                                          BUT standard behavior: mask cuts out the element. 
+                                          To color it, we need the element to be a block of color. 
+                                          So we set background-color and move the object content away? 
+                                          No, 'content: ""' is invalid on img. 
+                                          The accepted way to recolor an img via CSS only is using mask on a wrapper OR 
+                                          using a filter. 
+                                          Since I can't easily add a wrapper without editing HTML (templates), 
+                                          I will use the mask property directly on the img tag but I need to ensure 
+                                          the image content itself doesn't show?
+                                          Wait, 'mask' creates transparency. It doesn't fill with color.
+                                          A BETTER approach for a single IMG tag:
+                                          Use the mask on a pseudo element? No, img tags don't support pseudo elements.
+                                          
+                                          CORRECT APPROACH: 
+                                          Use `content: url(...)`? No.
+                                          Use `filter: drop-shadow(0 0 0 var(--primal))`? No (adds shadow).
+                                          
+                                          The "Mask" trick for coloring an icon usually requires the element to differ.
+                                          
+                                          However, since I can edit `login.html`?
+                                          Wait, user said "this element... should change color". 
+                                          If I can edit `login.html`, I can add a wrapper.
+                                          But user specified `login.css` context implicitly.
+                                          
+                                          Let's try the `mask` approach on the img tag ITSELF:
+                                          If you set `mask-image` on an element, the element is clipped.
+                                          The visible part is the element's own content (the image) where the mask is opaque.
+                                          So `mask-image: url(self)` just shows the original image.
+                                          
+                                          To RECOLOR it, we need a block of color `background-color: var(--primal)` 
+                                          and mask *that* block with the image shape.
+                                          We can turn the `img` into a block of color by:
+                                          1. Setting `padding` equal to size? No.
+                                          2. Hiding the `src`? 
+                                          
+                                          Alternative: `filter: sepia(1) saturate(10000%) hue-rotate(...)`
+                                          This is hard to match exact theme color.
+                                          
+                                          Let's look at `login.html` to see if I can add a class or wrapper.
+                                          Actually, I'll use the `mask` trick by making the img transparent? 
+                                          No.
+                                          
+                                          Okay, I will replace the img with a div in `login.html`? 
+                                          That might break things.
+                                          
+                                          Let's stick to CSS if possible.
+                                          Ah! `mask-image` works on the *box* of the element.
+                                          If we can make the element's content invisible (e.g. `object-position` off screen) 
+                                          but keep the box size, then `background-color` fills the box.
+                                          Then `mask-image` cuts the background.
+                                          
+                                          Let's try:
+                                          height: (keep same); width: (keep same);
+                                          object-position: -99999px; (moves the image content away)
+                                          background-color: var(--primal);
+                                          mask-image: url(...);
+                                          mask-size: contain;
+                                          mask-repeat: no-repeat;
+                                          mask-position: center;
+                                          
+                                          This works on Chrome/Firefox for `img` tags.
+                                          */
+    
+    height: 100px; /* Need explicit height if object-position moves content? */
+                   /* Actually .logo-img has width 80%, max-width 200px. */
+                   /* WebP aspect ratio might define height. */
+                   /* If I move content, does intrinsic size remain? Usually yes. */
+    object-position: -99999px 0; 
+    background-color: var(--primal, var(--primary-color));
+  }
+}

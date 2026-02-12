@@ -1,0 +1,95 @@
+{% load static %}
+<!-- Generic Subsection Selection Checkboxes with Context Menu -->
+<!-- Expects 'field', 'locked_ids', 'parent_model', 'child_model', 'add_url', 'edit_url_template', 'delete_url_template' -->
+
+<!-- Include CSS -->
+<link rel="stylesheet" href="{% static 'sections/css/context_menu.css' %}">
+
+<div class="d-flex align-items-center gap-2 mt-2 mb-1">
+  <h6 class="mb-0">الأقسام الفرعية</h6>
+  <span class="text-muted subsection-help" data-bs-toggle="tooltip"
+        title="للتعديل أو الحذف: اضغط بزر الفأرة الأيمن على القسم، أو اضغط مطولاً على الهاتف"
+        role="img" aria-label="مساعدة">
+      <i class="bi bi-question-circle"></i>
+  </span>
+</div>
+
+<div class="d-flex flex-wrap gap-2 my-3" role="group" aria-label="الأقسام الفرعية">
+  {% for checkbox in field %}
+    {% with checkbox_id=checkbox.id_for_label %}
+    {# Check if the current choice is in the locked list #}
+    {% if checkbox.data.value|stringformat:"s" in locked_ids %}
+        <div class="position-relative d-inline-block">
+            <input type="checkbox" name="{{ checkbox.data.name }}" value="{{ checkbox.data.value }}" class="btn-check" id="{{ checkbox_id }}" checked disabled>
+            <label class="btn btn-outline-secondary opacity-75 subsection-checkbox-label" 
+                   for="{{ checkbox_id }}" 
+                   title="لا يمكن حذف هذا العنصر لارتباطه بملفات" 
+                   style="cursor: not-allowed; font-size: 1.1rem;"
+                   data-sub-id="{{ checkbox.data.value }}"
+                   data-sub-name="{{ checkbox.choice_label }}"
+                   data-locked="true">
+              {{ checkbox.choice_label }} <i class="bi bi-lock-fill small ms-1"></i>
+            </label>
+            {# Hidden input to ensure value is submitted if disabled #}
+            <input type="hidden" name="{{ checkbox.data.name }}" value="{{ checkbox.data.value }}">
+        </div>
+    {% else %}
+        <input type="checkbox" 
+               name="{{ checkbox.data.name }}" 
+               value="{{ checkbox.data.value }}" 
+               class="btn-check" 
+               id="{{ checkbox_id }}" 
+               {% if checkbox.data.selected %}checked{% endif %}>
+        <label class="btn btn-outline-secondary subsection-checkbox-label" 
+               for="{{ checkbox_id }}" 
+               style="font-size: 1.1rem;"
+               data-sub-id="{{ checkbox.data.value }}"
+               data-sub-name="{{ checkbox.choice_label }}"
+               data-locked="false">
+          {{ checkbox.choice_label }}
+        </label>
+    {% endif %}
+    {% endwith %}
+  {% empty %}
+    <span class="text-muted subsection-empty">لا توجد أقسام فرعية</span>
+  {% endfor %}
+
+  {# Add New Subsection Button - Triggers Inline Input #}
+  <button type="button" class="btn btn-outline-primary add-subsection-btn" 
+          data-parent-model="{{ parent_model }}" 
+          data-child-model="{{ child_model }}"
+          data-parent-id="{{ parent_id }}"
+          data-parent-field="{{ parent_field }}"
+          data-field-name="{{ field.html_name }}"
+          data-add-url="{{ add_url }}"
+          data-edit-url-template="{{ edit_url_template }}"
+          data-delete-url-template="{{ delete_url_template }}"
+          data-csrf="{{ csrf_token }}">
+      <i class="bi bi-plus-lg"></i>
+  </button>
+</div>
+
+<!-- Context Menu -->
+<div id="subsectionContextMenu" class="context-menu">
+    <button type="button" class="context-menu-item" data-action="edit">
+        <i class="bi bi-pencil"></i> تعديل
+    </button>
+    <div class="context-menu-divider"></div>
+    <button type="button" class="context-menu-item text-danger" data-action="delete">
+        <i class="bi bi-trash"></i> حذف
+    </button>
+</div>
+
+<!-- Delete Form (hidden, used by JS) -->
+
+
+<!-- Include JS -->
+<script src="{% static 'sections/js/context_menu.js' %}"></script>
+<script>
+  (function() {
+    if (!window.bootstrap || !window.bootstrap.Tooltip) return;
+    document.querySelectorAll('.subsection-help[data-bs-toggle="tooltip"]').forEach(function(el) {
+      bootstrap.Tooltip.getOrCreateInstance(el, { container: 'body' });
+    });
+  })();
+</script>

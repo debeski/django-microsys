@@ -1,0 +1,34 @@
+<div class="d-flex gap-2 align-items-center justify-content-end no-print">
+    {% if user.is_superuser or user.is_staff and not record.is_superuser %}
+    <div class="dropdown-center">
+        <a href="#" class="action-icon" id="actionDropdown{{ record.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-three-dots-vertical text-dark"></i>
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="actionDropdown{{ record.id }}">
+            
+            <li>
+                <a class="dropdown-item" href="{% url 'user_detail' record.pk %}" title="عرض">
+                    <i class="bi bi-person-lines-fill text-dark me-1 h5"> </i> عرض
+                </a>
+            </li>
+            
+            {% if user.is_superuser or user.is_staff and not record.is_superuser %}
+            <li>
+                <a class="dropdown-item" href="{% url 'edit_user' record.pk %}" title="تعديل">
+                    <i class="bi bi-person-dash-fill text-dark me-1 h5"></i> تعديل
+                </a>
+            </li>
+            {% endif %}
+            {% if user.is_superuser and not record.is_staff %}
+            <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal"
+                data-user-id="{{ record.pk }}" data-user-name="{{ record.username }}"
+                data-delete-url="{% url 'delete_user' record.pk %}">
+                <i class="bi bi-x-octagon text-danger me-1 h5"> </i> حذف
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>

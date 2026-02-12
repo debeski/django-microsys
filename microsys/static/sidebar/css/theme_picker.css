@@ -1,0 +1,165 @@
+
+.current-theme-indicator {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    margin: 5px; /* Spacing from bottom-left corner */
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto; /* Enable clicks since parent toolbar is none */
+}
+
+.theme-arrow {
+    position: absolute;
+    bottom: 36px; /* Space above indicator */
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--primal);
+    font-size: 1.3rem; /* Even bigger arrow */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.sidebar.collapsed .theme-arrow.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sidebar.collapsed .theme-arrow {
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.sidebar.collapsed .current-theme-indicator {
+     margin: 5px auto; /* Centered in narrow sidebar */
+}
+
+.current-theme-indicator:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Theme Popup Menu */
+.theme-popup {
+    display: none;
+    position: absolute;
+    bottom: 45px;
+    left: 10px; /* Fixed to left in RTL too for specific bottom-left request */
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    padding: 10px;
+    z-index: 1100;
+    min-width: 110px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    animation: popupIn 0.2s ease-out;
+    pointer-events: auto;
+}
+
+.sidebar.collapsed .theme-popup {
+    left: 5px;
+    right: 5px;
+    bottom: 65px; /* More space to accommodate larger arrow and breathing room */
+    min-width: auto;
+    width: auto;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+.sidebar.collapsed .theme-popup .small {
+    display: none; /* Hide "Select Color" text in narrow view */
+}
+
+.sidebar.collapsed .theme-options-grid {
+    grid-template-columns: 1fr; /* Vertical column */
+    gap: 8px;
+    justify-items: center;
+}
+
+/* Staggered Animations for items */
+.theme-option-circle {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.theme-popup.show .theme-option-circle {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Staggered delays */
+.theme-popup.show .theme-option-circle:nth-child(1) { transition-delay: 0.05s; }
+.theme-popup.show .theme-option-circle:nth-child(2) { transition-delay: 0.1s; }
+.theme-popup.show .theme-option-circle:nth-child(3) { transition-delay: 0.15s; }
+.theme-popup.show .theme-option-circle:nth-child(4) { transition-delay: 0.2s; }
+.theme-popup.show .theme-option-circle:nth-child(5) { transition-delay: 0.25s; }
+.theme-popup.show .theme-option-circle:nth-child(6) { transition-delay: 0.3s; }
+
+@keyframes popupIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.theme-popup.show {
+    display: block;
+}
+
+.theme-options-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.theme-option-circle {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+    pointer-events: auto;
+}
+
+.theme-option-circle:hover {
+    transform: scale(1.2);
+}
+
+.theme-option-circle.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #3b82f6 !important;
+}
+
+/* Theme Colors for circles */
+.theme-circle-light { background: #f6f7f9; }
+.theme-circle-blue  { background: #2363c3; }
+.theme-circle-gold  { background: #d97706; }
+.theme-circle-green { background: #166534; }
+.theme-circle-red   { background: #7f1d1d; }
+.theme-circle-dark  { background: #0f172a; }
+
+/* Dark Mode Overrides for the Popup */
+:root.theme-dark .theme-popup {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+:root.theme-dark .sidebar-toolbar {
+    border-top-color: rgba(255, 255, 255, 0.05);
+}
+:root.theme-dark .theme-option-circle.active {
+    box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #3b82f6 !important;
+}

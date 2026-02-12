@@ -1,12 +1,12 @@
-# Micro Users - Arabic Django User Management App
+# MicroSys - Arabic Django System Integration Services
 
-[![PyPI version](https://badge.fury.io/py/micro-users.svg)](https://pypi.org/project/micro-users/)
+[![PyPI version](https://badge.fury.io/py/django-microsys.svg)](https://pypi.org/project/django-microsys/)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/debeski/micro-users/main/users/static/img/login_logo.webp" alt="Micro Users Login Logo" width="450"/>
+  <img src="https://raw.githubusercontent.com/debeski/microsys/static/img/login_logo.webp" alt="MicroSys Login Logo" width="450"/>
 </p>
 
-**Arabic** lightweight, reusable Django app providing user management with abstract user, permissions, localization, and activity logging.
+**Arabic** lightweight, reusable Django app providing comprehensive system integration services, including user management, profile extension, permissions, localization, dynamic sidebar, and automated activity logging.
 
 ## Requirements
 - **Must be installed on a fresh database.**
@@ -19,137 +19,347 @@
 - babel 2.1+
 
 ## Features
-- Custom AbstractUser model
-- Scope Management System (Optional)
-- Custom Grouped User permissions system
-- Automatic Activity logging (login/logout, CRUD for all models)
-- Specific User detail and log view
-- Localization support
-- Admin interface integration
-- CRUD views and templates
-- Filtering and tabulation
-> *Future updates are planned to support dynamic language switching between RTL and LTR.*
+- **System Integration**: Centralized management for users and system scopes.
+- **Profile Extension**: Automatically links a `Profile` to your existing User model.
+- **Scope Management**: Optional, dynamic scope isolation system with abstract `ScopedModel`.
+- **Dynamic Sidebar**: Auto-discovery of list views and customizable menu items.
+- **Permissions**: Custom grouped permission UI (App/Model/Action).
+- **Automated Logging**: Full activity tracking (CRUD, Login/Logout) via Signals.
+- **Localization**: Native Arabic support for all interfaces.
+- **Theming & Accessibility**: Built-in dark/light modes and accessibility tools (High Contrast, Zoom, etc.).
+- **Security**: CSP compliance, role-based access control (RBAC).
 
 ## Installation
 
 ```bash
-pip install git+https://github.com/debeski/micro-users.git
+pip install git+https://github.com/debeski/microsys.git
 # OR
-pip install micro-users
+pip install django-microsys
 ```
 
-## Configuration
+## Quick Start & Configuration
 
-1. Add to `INSTALLED_APPS`:
-```python
-INSTALLED_APPS = [
-    'users',  # Preferably on top
-    'django.contrib.admin',
-    'django.contrib.auth',
-    ...
-]
-```
+1. **Add to `INSTALLED_APPS`:**
+   ```python
+   INSTALLED_APPS = [
+       'microsys',  # Preferably on top
+       'django.contrib.admin',
+       'django.contrib.auth',
+       # ... dependencies
+       'crispy_forms',
+       'crispy_bootstrap5',
+       'django_filters',
+       'django_tables2',
+   ]
+   ```
 
-2. Add Middleware in `settings.py` (Required for logging):
-```python
-MIDDLEWARE = [
-    # ...
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # ...
-    'users.middleware.ActivityLogMiddleware',  # Add this line
-]
-```
+2. **Add Middleware:**
+   Required for activity logging and request caching.
+   ```python
+   MIDDLEWARE = [
+       # ...
+       'django.contrib.auth.middleware.AuthenticationMiddleware',
+       # ...
+       'microsys.middleware.ActivityLogMiddleware',
+   ]
+   ```
 
-3. Set custom user model in `settings.py`:
-```python
-AUTH_USER_MODEL = 'users.CustomUser'
-```
+3. **Add Context Processor:**
+   Unified context processor for branding, sidebar, and scope settings.
+   ```python
+   TEMPLATES = [
+       {
+           # ...
+           'OPTIONS': {
+               'context_processors': [
+                   # ...
+                   'microsys.context_processors.microsys_context',
+               ],
+           },
+       },
+   ]
+   ```
 
-4. Include URLs in your main project folder `urls.py`:
-```python
-urlpatterns = [
-    ...
-    path('manage/', include('users.urls')),
-]
-```
+4. **Include URLs:**
+   Mount at **root** for seamless Django auth integration:
+   ```python
+   from django.urls import path, include
 
-5. Run migrations:
+   urlpatterns = [
+       # ...
+       path('', include('microsys.urls')),  # Mount at root
+   ]
+   ```
+   
+   This provides:
+   - `/accounts/login/` and `/accounts/logout/` (Django defaults)
+   - `/sys/` for all system management routes
+
+   > ⚠️ **Warning:** If your project already uses `/accounts/` URLs (e.g., `django-allauth`), you'll have conflicts. In that case, mount with a prefix and configure custom auth URLs:
+   > ```python
+   > # urls.py
+   > path('microsys/', include('microsys.urls')),
+   > 
+   > # settings.py
+   > LOGIN_URL = '/microsys/accounts/login/'
+   > LOGIN_REDIRECT_URL = '/microsys/sys/'
+   > LOGOUT_REDIRECT_URL = '/microsys/accounts/login/'
+   > ```
+
+5. **Run Setup Command:**
+   ```bash
+   python manage.py microsys_setup
+   ```
+   This will create migrations, apply them, and validate your configuration.
+
+## Management Commands
+
+### `microsys_setup`
+Initial setup command that handles migrations and configuration validation.
+
 ```bash
-python manage.py migrate users
+# Full setup (recommended for first install)
+python manage.py microsys_setup
+
+# Skip configuration check
+python manage.py microsys_setup --skip-check
+
+# Only validate config (skip migrations)
+python manage.py microsys_setup --no-migrate
 ```
 
-## How to Use
+### `microsys_check`
+Validates your Django settings and shows exact code snippets for any missing configuration.
 
-Once configured, the app automatically handles user management and activity logging. Ensure your project has a `base.html` template in the root templates directory, as all user management templates extend it.
-
-### Activity Logging
-
-The app provides a fully **automated** activity logging system. No manual configuration is required in your views.
-
-- **Login/Logout**: Automatically tracked.
-- **Create/Update/Delete**: Any change to any model in your app (including `Scope` and `User`) is automatically logged via Django Signals.
-- **Log content**: Tracks the user, action type, model name, object ID, and timestamp.
-    - *Note*: `last_login` field updates are automatically filtered out to prevent redundant "Update" logs on login.
-
-To view logs, navigate to `manage/logs/` or use the Django Admin interface ("حركات السجل").
-
-## Available URLs
-
-All user management URLs are prefixed with `manage/` as configured above. Below is the complete list:
-
-| URL Pattern | View/Function | Description |
-|-------------|---------------|-------------|
-| `manage/login/` | `auth_views.LoginView.as_view()` | User login |
-| `manage/logout/` | `auth_views.LogoutView.as_view()` | User logout |
-| `manage/users/` | `views.UserListView.as_view()` | List all users |
-| `manage/users/create/` | `views.create_user` | Create new user |
-| `manage/users/edit/<int:pk>/` | `views.edit_user` | Edit existing user |
-| `manage/users/delete/<int:pk>/` | `views.delete_user` | Delete user |
-| `manage/users/<int:pk>/` | `views.UserDetailView.as_view()` | View user details |
-| `manage/profile` | `views.user_profile` | View current user profile |
-| `manage/profile/edit/` | `views.edit_profile` | Edit current profile |
-| `manage/logs/` | `views.UserActivityLogView.as_view()` | View activity logs |
-| `manage/reset_password/<int:pk>/` | `views.reset_password` | Reset user password |
-| `manage/scopes/manage/` | `views.manage_scopes` | Scope Manager (Modal) |
-
-## Structure
-```
-users/
-├── views.py        # CRUD operations
-├── urls.py         # URL routing
-├── tables.py       # User and Activity Log tables
-├── signals.py      # Logging signals
-├── middleware.py   # Request capture for signals
-├── models.py       # User model, permissions, activity logs
-├── forms.py        # Creation, edit,. etc.
-├── filter.py       # Search filters
-├── apps.py         # Permissions Localization
-├── admin.py        # Admin UI integration
-├── __init__.py     # Python init
-├── templates/      # HTML templates (includes partials)
-├── static/         # CSS classes
-└── migrations/     # Database migrations
+```bash
+python manage.py microsys_check
 ```
 
-## Customization
+**Output example:**
+```
+🔍 MicroSys Configuration Check
+==================================================
 
-### Replacing Login Logo
-To replace the default login logo, simply place your own `login_logo.webp` image in your project's static directory at `static/img/login_logo.webp`.
+📋 INSTALLED_APPS: ✓ OK
+📋 MIDDLEWARE: ✗ MISSING
+📋 CONTEXT_PROCESSORS: ✓ OK
+📋 URLS: ✓ OK
+📋 CRISPY_FORMS: ✓ OK
 
-### Theme Configuration
-You can configure the login page colors by defining `MICRO_USERS_THEME` in your project's `settings.py`. This dictionary overrides the default CSS variables.
+==================================================
+❌ REQUIRED CONFIGURATION MISSING:
+
+▶ MIDDLEWARE:
+
+MIDDLEWARE = [
+    # ... after AuthenticationMiddleware
+    'microsys.middleware.ActivityLogMiddleware',
+]
+```
+
+> **Note:** microsys also validates your configuration at runtime and will emit warnings if required middleware or context processors are missing.
+
+## App Configuration
+
+Customize branding and behavior by adding `MICROSYS_CONFIG` and `SIDEBAR_AUTO` to your `settings.py`:
 
 ```python
-MICRO_USERS_THEME = {
-    'right_bg': '#474745',
-    'left_bg': 'white',
-    'selection_bg': '#dbdbdb',
-    'gradient_start': '#a2a2a7',
-    'gradient_end': '#474745',
-    # Additional keys supported:
-    # 'selection_moz_bg', 'left_shadow', 'right_shadow', 'right_text',
-    # 'label_color', 'input_text', 'submit_color', 'submit_focus', 'submit_active'
+MICROSYS_CONFIG = {
+    'name': 'My System Name',           # App title in navbar/pages
+    'verbose_name': 'ادارة النظام',      # App title in navbar/pages
+    'logo': '/static/img/logo.png',     # Base/logo shown in the titlebar
+    'login_logo': '/static/img/login_logo.webp',  # Logo on login screen
+    'description': 'System Desc',       # Optional description
+    'home_url': '/sys/',                 # Titlebar home link (default: /sys/)
+    
+    # ... branding fields only
 }
+
+# Auth redirects (defaults are set by microsys if not provided)
+LOGIN_REDIRECT_URL = '/sys/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+SIDEBAR_AUTO = {
+    'ENABLED': True,                    # Enable auto-discovery
+    'URL_PATTERNS': ['list'],           # Keywords to match in URL names for auto-menu
+    'EXCLUDE_APPS': ['admin', 'auth'],  # Apps to exclude
+    'CACHE_TIMEOUT': 3600,              # Cache timeout in seconds
+    'DEFAULT_ICON': 'bi-list',          # Default Bootstrap icon
+
+    # Built-in system group (accordion) can be disabled if desired
+    'SYSTEM_GROUP_ENABLED': True,
+
+    # Override auto-discovered items
+    'DEFAULT_ITEMS': {
+        'decree_list': {          # Key is the URL name
+            'label': 'Decisions', # Override label
+            'icon': 'bi-gavel',   # Override icon
+            'order': 10,          # Sort order
+        },
+    },
+
+    # Add manual items (e.g. for views without models)
+    'EXTRA_ITEMS': {
+        'الإدارة': {  # Accordion Group Name
+            'icon': 'bi-gear',
+            'items': [
+                {
+                    'url_name': 'manage_sections',
+                    'label': 'إدارة الأقسام',
+                    'icon': 'bi-diagram-3',
+                    'permission': 'is_staff',
+                },
+            ]
+        }
+    }
+}
+```
+
+## Core Components Usage
+
+### 1. Profile Access
+`microsys` automatically creates a `Profile` for every user via signals.
+```python
+# Accessing profile data
+phone = user.profile.phone
+scope = user.profile.scope
+```
+
+### 2. ScopedModel (Data Isolation)
+To enable automatic scope filtering and soft-delete, **YOUR MODELS MUST** inherit from:
+```python
+from microsys.models import ScopedModel
+
+class MyModel(ScopedModel):
+    name = models.CharField(...)
+    # ...
+```
+- **Automatic Scope Recognition**: `ScopedModel` already uses global scope settings, so you don't need to do anything.
+- **Automatic Filtering**: Queries are automatically filtered by the current user's scope.
+- **Soft Delete**: `MyModel.objects.get(pk=1).delete()` sets `deleted_at` instead of removing the row.
+
+### 3. Sidebar Features
+- **Auto-Discovery**: Automatically finds views like `*_list` and adds them to the sidebar.
+- **Toggle**: Users can collapse/expand the sidebar; preference is saved in the session.
+- **Reordering**: Drag-and-drop reordering is supported for authorized users.
+
+### 4. Themes & Accessibility
+Built-in support for:
+- **Themes**: Dark / Light and colors.
+- **Accessibility Modes**:
+  - High Contrast
+  - Grayscale
+  - Invert Colors
+  - x1.5 Zoom
+  - Disable Animations
+- **Location**: Accessible via the User Options menu (`options.html`) and Sidebar toolbar.
+
+### 5. Sections (Auto Forms/Tables)
+When a section model does not provide a custom Form/Table class, microsys generates them automatically.
+You can exclude fields from those auto-generated classes by setting model attributes:
+
+```python
+class Department(models.Model):
+    name = models.CharField(...)
+    code = models.CharField(...)
+    internal_notes = models.TextField(...)
+
+    form_exclude = ["internal_notes"]
+    table_exclude = ["internal_notes"]
+```
+
+Notes:
+- These attributes apply only to the auto-generated form/table.
+- If you provide a custom Form/Table class, it takes full precedence.
+
+## Templates & Theming
+
+### Base Template
+The system provides a robust base template located at `microsys/templates/microsys/base.html`.
+You can extend this template in your own views to maintain consistent layout and functionality:
+
+```html
+{% extends "microsys/base.html" %}
+
+{% block extra_head %}
+    <!-- Extra CSS or Meta tags -->
+{% endblock %}
+
+{% block content %}
+    <h1>Page Content</h1>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Extra JS scripts -->
+{% endblock %}
+```
+
+> **Note:** The base template automatically handles the sidebar, title bar, messages, and theme loading. Replacing it entirely will break core system functionality.
+
+### Theming
+- **Framework**: Built on **Bootstrap 5 (RTL)**.
+- **Colors**: The `primary` color automatically adapts to the selected theme. Secondary/Success/Danger colors are slightly desaturated for better visual ergonomics.
+- **Customization**:
+  - Use standard Bootstrap classes (`btn-primary`, `text-success`, etc.).
+  - Dark mode is supported out of the box. If you encounter issues, you can override styles via `extra_head` or report them.
+
+---
+
+## Dynamic Section Mode
+
+Microsys offers a powerful "Zero-Boilerplate" CRUD interface for managing auxiliary data models (like Departments, Categories, etc.).
+
+### How It Works
+1. **Mark Your Model**: Add `is_section = True` to your model (or Meta class).
+   ```python
+   class Department(ScopedModel):
+       name = models.CharField(...)
+       is_section = True
+   ```
+2. **Auto-Discovery**: The system automatically generates a management UI with:
+   - Searchable Table (with pagination & sorting)
+   - Add/Edit Modals (using Crispy Forms)
+   - Delete protection (checks for related records)
+   - Filters (Keyword search + Date ranges if applicable)
+
+   > **Note**: You can customize the auto-generated components by adding `form_exclude` and `table_exclude` lists to your model:
+   > ```python
+   > class Department(ScopedModel):
+   >     # ...
+   >     form_exclude = ['internal_notes']
+   >     table_exclude = ['internal_notes', 'created_at']
+   > ```
+
+### Auto Subsections (Parent-Child Relations)
+If a Section model has a `ManyToManyField` to another model that is **not** a standalone section (i.e. a "child" model), the system automatically nests it:
+
+```python
+class SubUnit(ScopedModel):  # Child model (no is_section=True)
+    name = models.CharField(...)
+
+class MainUnit(ScopedModel): # Parent section
+    is_section = True
+    sub_units = models.ManyToManyField(SubUnit)
+```
+
+**Result:**
+- When editing a `MainUnit`, you will see a list of `SubUnits`.
+- You can **Add/Edit/Delete** `SubUnits` directly from the `MainUnit` modal via AJAX.
+- This creates a seamless "Master-Detail" management experience without writing a single view or form.
+
+## File Structure
+
+```
+microsys/
+├── models.py               # Profile, Scope, Logs
+├── views.py                # User management views
+├── forms.py                # User/Profile forms
+├── signals.py              # Auto-create profile logic
+├── context_processors.py   # Global variables & Scope
+├── middleware.py           # Request capture
+├── discovery.py            # Sidebar auto-discovery logic
+├── templates/              # microsys/ (flattened structure)
+└── static/                 # microsys/ (js/css/img)
 ```
 
 ## Version History
@@ -157,22 +367,8 @@ MICRO_USERS_THEME = {
 | Version  | Changes |
 |----------|---------|
 | v1.0.0   | • Initial release as pip package |
-| v1.0.1   | • Fixed a couple of new issues as a pip package |
-| v1.0.2   | • Fixed the readme and building files |
-| v1.0.3   | • Still getting the hang of this pip publish thing |
-| v1.0.4   | • Honestly still messing with and trying settings and stuff out |
-| v1.1.0   | • OK, finally a working seamless micro-users app |
-| v1.1.1   | • Fixed an expolit where a staff member could disable the ADMIN user |
-| v1.2.0   | • Added User Details view with specific user activity log |
-| v1.2.1   | • Fixed a minor import bug |
-| v1.2.2   | • Separated user detail view from table for consistency<br> • Optimized the new detail + log view for optimal compatibiliyy with users |
-| v1.2.3   | • Fixed a couple of visual inconsistencies |
-| v1.3.0   | • Patched a critical security permission issue<br> • Disabled ADMIN from being viewed/edited from all other members<br> • Fixed a crash when sorting with full_name<br> • Enabled Logging for all actions |
-| v1.3.1   | • Corrected a misplaced code that caused a crash when editing profile |
-| v1.3.2   | • Minor table modifications |
-| v1.4.0   | • Redesigned Permissions UI (Grouped by App/Action) <br> • Added Global Bulk Permission Selectors <br> • Improved Arabic Localization for Permissions <br> • Optimized printing (hidden forms/buttons) <br> • Fixed various bugs and crashes |
-| v1.4.1   | • Changed "Administrative User" translation to "Responsible User" (مستخدم مسؤول) <br> • Enforced custom sorting order for Permissions (View -> Add -> Change -> Other) |
-| v1.5.0   | • Department Management (Modal-based CRUD)<br> • Department field implementation<br> • Template refactoring (partials/, profile/, users/ for logs)<br> • Verbose names for models |
-| v1.6.0   | • **Automated Activity Logging**: dynamic logging for all CREATE/UPDATE/DELETE actions via Middleware & Signals<br> • **Refactor**: Renamed `Department` model to `Scope` (Scope Management)<br> • Removed manual logging requirement<br> • **Architecture**: Decoupled models, forms, and tables using dynamic imports and `apps.get_model` <br> • **Soft Delete**: Users are now marked as inactive with a timestamp instead of being permanently deleted<br> • **Activity Log**: Deleted users appear with a strikethrough<br> • **CSS Refactor**: Extracted and cleaned up styling with CSS variables<br> • **Login**: Refactored login page with separated JS/CSS and a new modern default logo |
-| v1.6.1   | • **Theme Configuration**: Added `MICRO_USERS_THEME` setting for easy color customization <br> • **Bug Fixes**: Explicitly excluded unwanted columns (id, ip_address, user_agent) from Activity Log table <br> • **UI**: Improved Scope Manager button visibility |
-| v1.6.2   | • **UI**: Improved some tooltips for buttons and descriptions |
+| v1.1.0   | • URL restructure: auth at `/accounts/`, system at `/sys/` • Added `microsys_setup` and `microsys_check` management commands • Runtime configuration validation |
+| v1.2.0   | • PyPI name changed to `django-microsys` • Section model discovery hardened (dynamic app resolution, generic forms/tables/filters) • Scope fields now hide automatically when scopes are disabled • System sidebar group ships by default (configurable) • `is_staff` moved into the permissions UI |
+| v1.3.0   | • Fixed subsection display: subsections now show correctly regardless of user scope • Fixed SessionInterrupted error: reduced session writes in section management • Scope toggle now accepts explicit target state to prevent race conditions • Improved error messaging in Arabic for scope operations |
+| v1.4.0   | • Section table context menu: right-click on table rows for Edit/Delete actions • View Subsections modal: sections with M2M subsections show linked items • AJAX-based section deletion with related-record protection • Auto-generated tables now include row data attributes for JS binding |
+| v1.5.0   | • Auto-generated section filters now include date range pickers (from/to) with flatpickr integration • Added clarifying inline comments to complex view logic • Fixed login Enter key submission • Pypi Release |

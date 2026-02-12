@@ -1,0 +1,100 @@
+{% extends 'microsys/base.html' %}
+{% load django_tables2 %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}تحديث الملف الشخصي{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
+
+
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-10">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="glass-card">
+                <h1 class="page-title text-center display-6">
+                    <i class="bi bi-pencil-square me-2"></i> تحديث الملف الشخصي
+                </h1>
+                
+                <div class="row g-5">
+                    <!-- Form Fields -->
+                    <div class="col-md-8 order-2 order-md-1">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="username" class="form-label-custom">اسم المستخدم</label>
+                                <input type="text" name="username" id="username" class="form-control form-control-glass" value="{{ user.username }}">
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="email" class="form-label-custom">البريد الإلكتروني</label>
+                                <input type="email" name="email" id="email" class="form-control form-control-glass" value="{{ user.email }}">
+                            </div>
+                            
+                            <div class="col-md-12">
+                                <label for="phone" class="form-label-custom">رقم الهاتف</label>
+                                <input type="text" name="phone" id="phone" class="form-control form-control-glass" value="{{ user.phone }}">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label-custom">الاسم الأول</label>
+                                <input type="text" name="first_name" id="first_name" class="form-control form-control-glass" value="{{ user.first_name }}">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label-custom">الاسم الأخير (اللقب)</label>
+                                <input type="text" name="last_name" id="last_name" class="form-control form-control-glass" value="{{ user.last_name }}">
+                            </div>
+                        </div>
+
+                        <div class="mt-5 d-flex gap-3 flex-wrap">
+                            <button type="submit" class="btn btn-success rounded-pill action-btn shadow-sm" title="حفظ التغييرات">
+                                <i class="bi bi-check2-circle h4 m-0"></i> حفظ التغييرات
+                            </button>
+                            
+                            <a href="{% url 'user_profile' %}" class="btn btn-secondary rounded-pill action-btn shadow-sm" title="إلغاء">
+                                <i class="bi bi-x-circle h4 m-0"></i> إلغـــاء
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div class="col-md-4 order-1 order-md-2">
+                        <div class="profile-preview-container">
+                            <img id="profile_image_preview" 
+                                src="{% static 'img/default_profile.webp' %}" 
+                                alt="Profile Preview" 
+                                class="img-fluid preview-img mb-3" 
+                                width="220" height="220">
+                            <div class="text-muted small">صورة الملف الشخصي</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title fw-bold text-primary" id="resetPasswordModalLabel">تغيير كلمة المرور</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ password_form.as_p }}
+                    <div class="d-grid mt-3">
+                        <button type="submit" name="change_password" class="btn btn-success rounded-pill action-btn justify-content-center">تغيير كلمة المرور</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
