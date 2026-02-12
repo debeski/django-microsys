@@ -7,9 +7,9 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "django-microsys"
-version = "1.2.0"
-description = "micro (System Integration Services) - RTL Django Starter Pack, with Users Management, Permissions, Auto Section Management Page, and Activity Logging, and more."
+name = "django_microsys"
+version = "1.5.1"
+description = "Django micro (System Integration Service) - an RTL Django Starter Pack, with Users Management, Interactive Sidebar, Permissions, Dynamic Section Management, Activity Logging, and more."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -53,4 +53,4 @@ include = ["microsys"]
 include-package-data = true
 
 [project.urls]
-Homepage = "https://github.com/debeski/microsys"
+Homepage = "https://github.com/debeski/django-microsys"
