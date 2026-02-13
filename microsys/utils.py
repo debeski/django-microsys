@@ -246,10 +246,13 @@ def _build_generic_filter_class(model):
                 query_params.append(f"model={self.data['model']}")
             if 'sort' in self.data:
                 query_params.append(f"sort={self.data['sort']}")
+            if 'id' in self.data:
+                query_params.append(f"id={self.data['id']}")
+            
             if query_params:
                 clear_url += "?" + "&".join(query_params)
 
-            ignore_params = ['sort', 'page', 'model']
+            ignore_params = ['sort', 'page', 'model', 'id']
             has_active_filters = any(key for key in self.data if key not in ignore_params)
 
             if has_active_filters:

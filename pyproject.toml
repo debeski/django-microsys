@@ -8,8 +8,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django_microsys"
-version = "1.5.1"
-description = "Django micro (System Integration Service) - an RTL Django Starter Pack, with Users Management, Interactive Sidebar, Permissions, Dynamic Section Management, Activity Logging, and more."
+version = "1.5.2"
+description = "Django micro (System Integration Service) - an RTL Django Starter Pack, Packed with Features."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

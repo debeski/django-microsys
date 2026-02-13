@@ -833,12 +833,80 @@ def core_models_view(request):
                         pass
             return redirect('manage_sections')
 
-    # For auto-generated helpers, exclude subsection M2M fields from the crispy layout
-    if getattr(form, "_auto_helper", False) and subsection_field_names:
-        from crispy_forms.layout import Layout, Field
-        form.helper.layout = Layout(
-            *[Field(name, css_class="form-control") for name in form.fields if name not in subsection_field_names]
-        )
+    # For auto-generated helpers, build a custom 2-column layout with inline buttons
+    if getattr(form, "_auto_helper", False):
+        from crispy_forms.layout import Layout, Row, Column, Field, HTML, Div
+        
+        # Identify visible fields (excluding subsections which are handled separately)
+        visible_fields = [
+            f for f in form.fields 
+            if f not in subsection_field_names 
+            and not isinstance(form.fields[f].widget, forms.HiddenInput)
+        ]
+        
+        layout_components = []
+        
+        # Add hidden fields first
+        hidden_fields = [
+            f for f in form.fields 
+            if isinstance(form.fields[f].widget, forms.HiddenInput)
+        ]
+        for hf in hidden_fields:
+            layout_components.append(Field(hf))
+            
+        # Helper to chunk fields
+        def chunked(iterable, n):
+            return [iterable[i:i + n] for i in range(0, len(iterable), n)]
+            
+        field_chunks = chunked(visible_fields, 2)
+        total_chunks = len(field_chunks)
+        
+        for i, chunk in enumerate(field_chunks):
+            is_last_chunk = (i == total_chunks - 1)
+            
+            if is_last_chunk:
+                # Last chunk: Add fields + Buttons
+                row_content = []
+                for field_name in chunk:
+                    row_content.append(Column(Field(field_name), css_class="col"))
+                
+                # Build Buttons HTML
+                if cancel_url:
+                    buttons_html = f"""
+                    <div class="d-flex">
+                        <button type="submit" class="btn btn-primary rounded-start-pill rounded-end-0">حفظ</button>
+                        <a href="{cancel_url}" class="btn btn-outline-warning rounded-end-pill rounded-start-0">إلغاء</a>
+                    </div>
+                    """
+                else:
+                    buttons_html = '<button type="submit" class="btn btn-primary rounded-pill">حفظ</button>'
+                
+                row_content.append(
+                    Column(
+                        HTML(buttons_html), 
+                        css_class="col-auto align-self-end mb-3"
+                    )
+                )
+                layout_components.append(Row(*row_content))
+            else:
+                # Normal chunk: 2 columns
+                row_content = [Column(Field(field_name), css_class="col-md-6") for field_name in chunk]
+                layout_components.append(Row(*row_content))
+                
+        # If no visible fields but we have actions (rare edge case), just show buttons
+        if not visible_fields:
+            if cancel_url:
+                buttons_html = f"""
+                <div class="d-flex">
+                    <button type="submit" class="btn btn-primary rounded-start-pill rounded-end-0">حفظ</button>
+                    <a href="{cancel_url}" class="btn btn-outline-warning rounded-end-pill rounded-start-0">إلغاء</a>
+                </div>
+                """
+            else:
+                buttons_html = '<button type="submit" class="btn btn-primary rounded-pill">حفظ</button>'
+            layout_components.append(Row(Column(HTML(buttons_html), css_class="col-auto")))
+
+        form.helper.layout = Layout(*layout_components)
 
     # Build context
     context = {
@@ -855,12 +923,12 @@ def core_models_view(request):
         'filter': filter_obj,
         'table': table,
         'id': instance_id,
-        'show_form_actions': getattr(form, "_auto_helper", False),
-        'show_cancel': 'id' in request.GET,
+        'form_has_submit': getattr(form, "_auto_helper", False),  # Flag to hide template buttons
+        'show_cancel': 'id' in request.GET, # Kept for other uses if any
         'cancel_url': cancel_url,
         'ar_name': selected_data['verbose_name'],
         'ar_names': selected_data['verbose_name_plural'],
-        'subsection_forms': subsection_forms,
+        'subsection_forms': subsection_forms, # subsection forms for modals (kept outside main form)
         'subsection_selects': subsection_selects,
         'has_subsections': len(subsection_selects) > 0,
     }

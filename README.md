@@ -378,3 +378,4 @@ microsys/
 | v1.4.0   | • Section table context menu: right-click on table rows for Edit/Delete actions • View Subsections modal: sections with M2M subsections show linked items • AJAX-based section deletion with related-record protection • Auto-generated tables now include row data attributes for JS binding |
 | v1.5.0   | • Auto-generated section filters now include date range pickers (from/to) with flatpickr integration • Added clarifying inline comments to complex view logic • Fixed login Enter key submission • Pypi Release |
 | v1.5.1   | • Fixed Readme file and added detailed instructions |
+| v1.5.2   | • Optimized form and filters auto generation and layout |

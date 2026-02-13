@@ -54,7 +54,7 @@
                         {% include 'microsys/sections/subsection_select.html' with field=sub.field locked_ids=sub.locked_ids parent_model=sub.parent_model parent_id=sub.parent_id parent_field=sub.parent_field child_model=sub.child_model add_url=sub.add_url edit_url_template=sub.edit_url_template delete_url_template=sub.delete_url_template %}
                     {% endfor %}
                 {% endif %}
-                {% if show_form_actions %}
+                {% if not form_has_submit %}
                     {% if show_cancel and cancel_url %}
                     <div class="d-flex mt-3">
                         <button type="submit" class="btn btn-primary rounded-start-pill rounded-end-0">حفظ</button>
