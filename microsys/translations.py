@@ -109,7 +109,7 @@ MICROSYS_STRINGS = {
         'tbl_model_name': 'النموذج',
         'tbl_action': 'الإجراء',
         'tbl_object_id': 'رقم العنصر',
-        'tbl_number': 'الرقم',
+        'tbl_number': 'الهدف',
         'tbl_scope_default': 'عام',
 
         # Filter placeholders
@@ -144,11 +144,11 @@ MICROSYS_STRINGS = {
         'add_label': 'إضافة',
         'edit_label': 'تعديل',
         'delete_label': 'حذف',
-        'view_subsections': 'عرض الأقسام الفرعية',
         'subsections': 'الأقسام الفرعية',
         'error_generic': 'حدث خطأ ما!',
         'no_models': 'لا توجد موديلات متاحة.',
         'model_load_error': 'هناك خطأ في تحميل المودل.',
+        'view_label': 'عرض',
 
         # Activity log page
         # Activity log page
@@ -190,8 +190,6 @@ MICROSYS_STRINGS = {
 
         # User form Labels
         'user_label': 'مستخدم',
-        'edit_label': 'تعديل',  # Ensure generic edit label is present
-        'add_label': 'إضافة',   # Ensure generic add label is present
         'reset_password': 'إعادة تعيين كلمة المرور',
         'form_username': 'اسم المستخدم',
         'form_password': 'كلمة المرور',
@@ -214,8 +212,12 @@ MICROSYS_STRINGS = {
         'help_username': 'اسم المستخدم يجب أن يكون فريدًا، 20 حرفًا أو أقل. فقط حروف، أرقام و @ . + - _',
         'help_email': 'أدخل عنوان البريد الإلكتروني الصحيح (اختياري)',
         'help_phone': 'أدخل رقم الهاتف الصحيح بالصيغة الاتية 09XXXXXXXX (اختياري)',
-        'help_password_common': 'كلمة المرور يجب ألا تكون مشابهة لمعلوماتك الشخصية، وأن تحتوي على 8 أحرف على الأقل، وألا تكون شائعة أو رقمية بالكامل..',
-        'help_password_match': 'أدخل نفس كلمة المرور السابقة للتحقق.',
+        'help_password_common': """
+        <ul class="mb-0 ps-3"><li>كلمة المرور يجب ألا تكون مشابهة لمعلوماتك الشخصية.</li>
+        <li>كلمة المرور يجب ان تحتوي على 8 حروف وارقام على الاقل.</li>
+        <li>كلمة المرور يجب الا تكون شائعة والا تكون رقمية بالكامل.</li></ul>
+        """,
+        'help_password_match': 'أدخل نفس كلمة المرور مجددا للتحقق.',
         'help_is_active': 'يحدد ما إذا كان يجب اعتبار هذا الحساب نشطًا. قم بإلغاء تحديد هذا الخيار بدلاً من الحذف.',
         'help_is_staff_no_perm': 'ليس لديك صلاحية لتعيين هذا المستخدم كمسؤول.',
         'help_scope_self': 'لا يمكنك تغيير نطاقك الخاص لمنع تجريد نفسك من صلاحيات المدير العام.',
@@ -244,6 +246,33 @@ MICROSYS_STRINGS = {
         'action_confirm': 'تأكيد',
         'action_reject': 'رفض',
         'action_reset': 'إعادة تعيين',
+
+        # Profile
+        'role_superuser': 'مدير النظام',
+        'role_staff': 'مستخدم مسؤول',
+        'role_user': 'مستخدم عادي',
+        'btn_update_data': 'تحديث البيانات',
+        'btn_home': 'الرئيسية',
+        'btn_confirm_password_change': 'تأكيد تغيير كلمة المرور',
+        'profile_update_title': 'تحديث الملف الشخصي',
+        'save_changes': 'حفظ التغييرات',
+        'profile_picture': 'صورة الملف الشخصي',
+        
+        # Messages
+        'msg_password_changed': 'تم تغيير كلمة المرور بنجاح!',
+        'msg_form_error': 'هناك خطأ في البيانات المدخلة',
+
+        # User Detail View
+        'user_details_title': 'تفاصيل مستخدم',
+        'user_details_header': 'تفاصيل المستخدم',
+        'account_active': 'فعال',
+        'account_inactive': 'معطل',
+        'account_active_tooltip': 'حساب مفعل',
+        'account_inactive_tooltip': 'حساب معطل',
+        'staff_permissions_tooltip': 'لديه صلاحيات إدارية',
+        'role_type': 'نوع الصلاحيات',
+        'date_joined': 'تاريخ الإنشاء',
+        'back_to_users': 'العودة إلى إدارة المستخدمين',
     },
 
     # ───────────────────────────── English ─────────────────────────────
@@ -346,7 +375,7 @@ MICROSYS_STRINGS = {
         'tbl_model_name': 'Model',
         'tbl_action': 'Action',
         'tbl_object_id': 'Object ID',
-        'tbl_number': 'Number',
+        'tbl_number': 'Target',
         'tbl_scope_default': 'General',
 
         # Filter placeholders
@@ -381,13 +410,12 @@ MICROSYS_STRINGS = {
         'add_label': 'Add',
         'edit_label': 'Edit',
         'delete_label': 'Delete',
-        'view_subsections': 'View Subsections',
         'subsections': 'Subsections',
         'error_generic': 'An error occurred!',
         'no_models': 'No models available.',
         'model_load_error': 'Error loading model.',
+        'view_label': 'View',
 
-        # Activity log page
         # Activity log page
         'log_title': 'Activity Log',
         'no_items': 'No items found',
@@ -427,8 +455,6 @@ MICROSYS_STRINGS = {
 
         # User form Labels
         'user_label': 'User',
-        'edit_label': 'Edit',
-        'add_label': 'Add',
         'reset_password': 'Reset Password',
         'form_username': 'Username',
         'form_password': 'Password',
@@ -451,8 +477,12 @@ MICROSYS_STRINGS = {
         'help_username': 'Username must be unique, 20 characters or fewer. Letters, digits and @/./+/-/_ only.',
         'help_email': 'Enter a valid email address (optional).',
         'help_phone': 'Enter a valid phone number in format 09XXXXXXXX (optional).',
-        'help_password_common': 'Password should not be similar to personal info, at least 8 chars, not common or entirely numeric.',
-        'help_password_match': 'Enter the same password as before, for verification.',
+        'help_password_common': """
+        <ul class="mb-0 ps-3"><li>Password must be at least 8 characters long.</li>
+        <li>Password can’t be too similar to your other personal information.</li>
+        <li>Password can’t be a commonly used password or entirely numeric.</li></ul>
+        """,
+        'help_password_match': 'Enter the same password again, for verification.',
         'help_is_active': 'Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
         'help_is_staff_no_perm': 'You do not have permission to assign this user as staff.',
         'help_scope_self': 'You cannot change your own scope to prevent removing yourself from admin privileges.',
@@ -481,9 +511,81 @@ MICROSYS_STRINGS = {
         'action_confirm': 'Confirm',
         'action_reject': 'Reject',
         'action_reset': 'Reset',
+
+        # Profile
+        'role_superuser': 'Superuser',
+        'role_staff': 'Staff User',
+        'role_user': 'Standard User',
+        'btn_update_data': 'Update Info',
+        'btn_home': 'Home',
+        'btn_confirm_password_change': 'Confirm Password Change',
+        'profile_update_title': 'Update Profile',
+        'save_changes': 'Save Changes',
+        'profile_picture': 'Profile Picture',
+        
+        # Messages
+        'msg_password_changed': 'Password changed successfully!',
+        'msg_form_error': 'There was an error with the submitted data',
+
+        # User Detail View
+        'user_details_title': 'User Details',
+        'user_details_header': 'User Detail',
+        'account_active': 'Active',
+        'account_inactive': 'Inactive',
+        'account_active_tooltip': 'Account is active',
+        'account_inactive_tooltip': 'Account is inactive',
+        'staff_permissions_tooltip': 'Has administrative permissions',
+        'role_type': 'Role Type',
+        'date_joined': 'Date Joined',
+        'back_to_users': 'Back to User Management',
     },
 }
 
+
+from django.apps import apps
+from importlib import import_module
+from functools import lru_cache
+import logging
+
+logger = logging.getLogger(__name__)
+
+@lru_cache(maxsize=1)
+def _discover_and_merge_translations():
+    """
+    Auto-discover translations from all installed apps.
+    Looks for 'translations.py' in each app and 'MS_TRANSLATIONS' dict.
+    Returns a merged dictionary of all translations.
+    """
+    # Start with core strings
+    merged_strings = dict(MICROSYS_STRINGS)
+
+    for app_config in apps.get_app_configs():
+        # Skip microsys itself as we already loaded it
+        if app_config.name == 'microsys':
+            continue
+            
+        try:
+            # Try to import translations module
+            module = import_module(f"{app_config.name}.translations")
+            
+            # Look for MS_TRANSLATIONS
+            app_strings = getattr(module, 'MS_TRANSLATIONS', None)
+            
+            if app_strings and isinstance(app_strings, dict):
+                # Deep merge logic
+                for lang, keys in app_strings.items():
+                    if lang not in merged_strings:
+                        merged_strings[lang] = {}
+                    merged_strings[lang].update(keys)
+                    
+        except ImportError:
+            # App has no translations.py, just skip
+            continue
+        except Exception as e:
+            logger.warning(f"Error loading translations from {app_config.name}: {e}")
+            continue
+            
+    return merged_strings
 
 def get_strings(lang_code, overrides=None):
     """
@@ -491,12 +593,15 @@ def get_strings(lang_code, overrides=None):
     Falls back to 'ar' if the language is not found.
     Merges optional overrides on top.
     """
+    # Get all discovered strings (cached)
+    all_strings = _discover_and_merge_translations()
+    
     # Start with Arabic as base fallback
-    base = dict(MICROSYS_STRINGS.get('ar', {}))
+    base = dict(all_strings.get('ar', {}))
 
     # Layer the requested language on top
     if lang_code != 'ar':
-        lang_strings = MICROSYS_STRINGS.get(lang_code, {})
+        lang_strings = all_strings.get(lang_code, {})
         base.update(lang_strings)
 
     # Layer project-level overrides on top

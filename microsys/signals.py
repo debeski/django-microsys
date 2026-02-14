@@ -69,6 +69,7 @@ def create_user_profile(sender, instance, created, **kwargs):
 # Models to exclude from activity logging (e.g., internal Django models with non-integer PKs)
 EXCLUDED_MODELS = [
     'django.contrib.sessions.models.Session',
+    'microsys.models.Profile',
 ]
 
 def get_model_path(sender):
@@ -87,6 +88,10 @@ def log_save(sender, instance, created, **kwargs):
     if get_model_path(sender) in EXCLUDED_MODELS:
         return
 
+    # Skip if instance explicitly requests no logging
+    if getattr(instance, 'skip_signal_logging', False):
+        return
+
     # Get the current user from thread locals
     user = get_current_user()
     if not user or not user.is_authenticated:
@@ -96,6 +101,11 @@ def log_save(sender, instance, created, **kwargs):
     update_fields = kwargs.get('update_fields')
     if update_fields and 'last_login' in update_fields and len(update_fields) == 1:
         return
+
+    # Ignore Profile preference updates
+    if instance._meta.app_label == 'microsys' and instance._meta.object_name == 'Profile':
+        if update_fields and 'preferences' in update_fields and len(update_fields) == 1:
+            return
 
     action = "CREATE" if created else "UPDATE"
     

@@ -2,7 +2,7 @@
 
 {% with id=widget.attrs.id %}
 <div class="grouped-permissions-widget" id="{{ id }}_container">
-    <link rel="stylesheet" href="{% static 'users/css/permissions.css' %}">
+    <link rel="stylesheet" href="{% static 'microsys/users/css/permissions.css' %}">
     
     <div class="detailed-list mt-3">
         {% for app_label, app_data in widget.grouped_perms.items %}
@@ -75,5 +75,5 @@
     </div>
 </div>
 
-<script src="{% static 'users/js/permissions.js' %}" nonce="{{ request.csp_nonce }}"></script>
+<script src="{% static 'microsys/users/js/permissions.js' %}" nonce="{{ request.csp_nonce }}"></script>
 {% endwith %}

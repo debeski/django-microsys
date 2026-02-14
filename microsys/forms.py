@@ -10,6 +10,7 @@ from crispy_forms.bootstrap import FormActions
 from PIL import Image
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from django.utils.safestring import mark_safe
 from django.db.models import Q
 from django.apps import apps
 from django.forms.widgets import ChoiceWidget
@@ -608,17 +609,20 @@ class CustomUserChangeForm(UserChangeForm):
 
 # Custom User Reset Password form layout
 class ResetPasswordForm(SetPasswordForm):
-    username = forms.CharField(label="اسم المستخدم", widget=forms.TextInput(attrs={"readonly": "readonly"}))
+    username = forms.CharField(label="Username", widget=forms.TextInput(attrs={"readonly": "readonly"}))
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(user, *args, **kwargs)
         s = _get_form_strings(user)
         self.fields['username'].initial = user.username
-        self.fields['username'].label = s.get('form_username', "اسم المستخدم")
+        self.fields['username'].label = s.get('form_username', "Username")
         
         self.helper = FormHelper()
-        self.fields["new_password1"].label = s.get('form_new_password', "كلمة المرور الجديدة")
-        self.fields["new_password2"].label = s.get('form_confirm_new_password', "تأكيد كلمة المرور")
+        self.fields["new_password1"].label = s.get('form_new_password', "New Password")
+        self.fields['new_password1'].help_text = mark_safe(s.get('help_password_common', "Password should not be similar to..."))
+
+        self.fields["new_password2"].label = s.get('form_confirm_new_password', "Confirm New Password")
+        self.fields['new_password2'].help_text = s.get('help_password_match', "Enter the same password as...")
         self.helper.layout = Layout(
             Div(
                 Field('username', css_class='col-md-12'),
@@ -626,7 +630,7 @@ class ResetPasswordForm(SetPasswordForm):
                 Field('new_password2', css_class='col-md-12'),
                 css_class='row'
             ),
-            Submit('submit', s.get('btn_change_password', 'تغيير كلمة المرور'), css_class='btn btn-danger rounded-pill'),
+            Submit('submit', s.get('btn_change_password', 'Change Password'), css_class='btn btn-danger rounded-pill'),
         )
 
     def save(self, commit=True):
@@ -696,19 +700,24 @@ class UserProfileEditForm(forms.ModelForm):
         return user
 
 
-class ArabicPasswordChangeForm(PasswordChangeForm):
-    old_password = forms.CharField(
-        label=_('كلمة المرور القديمة'),
-        widget=forms.PasswordInput(attrs={'autocomplete': 'current-password', 'dir': 'rtl'}),
-    )
-    new_password1 = forms.CharField(
-        label=_('كلمة المرور الجديدة'),
-        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password', 'dir': 'rtl'}),
-    )
-    new_password2 = forms.CharField(
-        label=_('تأكيد كلمة المرور الجديدة'),
-        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password', 'dir': 'rtl'}),
-    )
+class CustomPasswordChangeForm(PasswordChangeForm):
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(user, *args, **kwargs)
+        s = _get_form_strings(user)
+        
+        # Current Password
+        self.fields['old_password'].label = s.get('form_old_password', "Current Password")
+        self.fields['old_password'].widget.attrs.pop('dir', None) # Remove fixed RTL 
+        
+        # New Password 1
+        self.fields['new_password1'].label = s.get('form_new_password', "New Password")
+        self.fields['new_password1'].help_text = mark_safe(s.get('help_password_common', "Password should not be similar to..."))
+        self.fields['new_password1'].widget.attrs.pop('dir', None)
+
+        # New Password 2
+        self.fields['new_password2'].label = s.get('form_confirm_new_password', "Confirm New Password")
+        self.fields['new_password2'].help_text = s.get('help_password_match', "Enter the same password as...")
+        self.fields['new_password2'].widget.attrs.pop('dir', None)
 
 class ScopeForm(forms.ModelForm):
     class Meta:

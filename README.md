@@ -170,7 +170,7 @@ MICROSYS_CONFIG = {
     'logo': '/static/img/logo.png',     # Base/logo shown in the titlebar
     'login_logo': '/static/img/login_logo.webp',  # Logo on login screen
     'description': 'System Desc',       # Optional description
-    'home_url': '/sys/',                 # Titlebar home link (default: /sys/)
+    'home_url': '/sys/',                 # Controls Titlebar home link AND default login redirect
     
     # ... branding fields only
 
@@ -187,8 +187,12 @@ MICROSYS_CONFIG = {
     # },
 }
 
-# Auth redirects (defaults are set by microsys if not provided)
-LOGIN_REDIRECT_URL = '/sys/'
+# Auth redirects
+# 1. 'next' query param (highest priority)
+# 2. LOGIN_REDIRECT_URL in settings (if set)
+# 3. MICROSYS_CONFIG['home_url'] (if set)
+# 4. '/sys/' (default fallback)
+LOGIN_REDIRECT_URL = '/sys/' 
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 ```
 
@@ -400,16 +404,87 @@ If you are building a custom sidebar template, you can use these tags:
 
 ---
 
-### 🌍 Translation Framework
+### 🖱️ Micro Context Menu ("Right-Click")
 
+A global, data-driven context menu that can be attached to any element to provide quick actions.
+
+- **How it works**
+1. **Mark Element**: Add `data-micro-context="true"` to any HTML element.
+2. **Define Actions**: Provide a JSON list of actions in `data-micro-actions`.
+
+```html
+<tr data-micro-context="true" 
+    data-micro-actions='[{"label": "Edit", "url": "/edit/1", "icon": "bi-pencil"}]'>
+    ...
+</tr>
+```
+
+- **Features**:
+  - **Global**: Works anywhere, automatically initialized.
+  - **Dynamic**: Actions are defined per-element via data attributes.
+  - **Mobile Ready**: Supports long-press on touch devices.
+  - **Standardized**: Used by system tables (Users, Sections) for a consistent experience.
+  - **Double Click**: Supports double-click actions (e.g. View) if `dblclick: true` is set on an action.
+  - **Smart Actions**: Includes "View Content" and "Smart Delete" handling for Sections using dynamic modals.
+
+- **Usage with Django Tables2**
+
+You can inject the context menu directly from your `tables.py` without modifying templates.
+
+1.  **Define Row Attributes**: Use `row_attrs` in `Meta` or `__init__`.
+2.  **Define Actions**: Create a list of actions and serialize to JSON.
+
+```python
+import json
+from django.urls import reverse
+
+class MyTable(tables.Table):
+    class Meta:
+        model = MyModel
+        # ...
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Define Actions Helper
+        def get_actions(record):
+            actions = [
+                {
+                    "label": "View", 
+                    "icon": "bi bi-eye", 
+                    "url": reverse('my_view', args=[record.pk]),
+                    "dblclick": True  # OPTIONAL: Trigger on double-click
+                },
+                {"type": "divider"},
+                {
+                    "label": "Delete", 
+                    "icon": "bi bi-trash", 
+                    "url": reverse('my_delete', args=[record.pk]),
+                    "textClass": "text-danger"
+                }
+            ]
+            return json.dumps(actions)
+
+        # Inject Attributes
+        self.row_attrs.update({
+            "data-micro-context": "true",
+            "data-micro-actions": get_actions
+        })
+```
+
+---
+
+### 🌍 Translation Framework
+ 
 microsys ships with Arabic and English translations. Add more languages via `MICROSYS_CONFIG['languages']`.
 
 **How it works:**
+- The system automatically discovers and loads translations from all installed apps.
+- It looks for `translations.py` in each app and merges the `MS_TRANSLATIONS` dictionary.
 - Language is resolved: **user preference** → **`default_language`** → **`'ar'`**
-- Templates use `{{ MS_TRANS.key }}` for all UI strings
-- The `<html>` tag gets dynamic `lang`/`dir` attributes
-- Bootstrap CSS auto-switches between RTL and LTR variants
-- Users switch languages from the Options page; a page reload applies translated strings
+- Templates use `{{ MS_TRANS.key }}` for all UI strings.
+- The `<html>` tag gets dynamic `lang`/`dir` attributes.
+- Bootstrap CSS auto-switches between RTL and LTR variants.
 
 **Template variables available:**
 | Variable | Type | Description |
@@ -420,13 +495,12 @@ microsys ships with Arabic and English translations. Add more languages via `MIC
 | `MS_TRANS` | `dict` | Translated strings for the active language |
 
 **Adding custom strings:**
+Simply add a `translations.py` file to any of your apps:
 ```python
-# In microsys/translations.py or via MICROSYS_CONFIG['translations']
-MICROSYS_CONFIG = {
-    'translations': {
-        'ar': {'my_key': 'قيمة مخصصة'},
-        'en': {'my_key': 'Custom Value'},
-    },
+# my_app/translations.py
+MS_TRANSLATIONS = {
+    'ar': {'my_key': 'قيمة مخصصة'},
+    'en': {'my_key': 'Custom Value'},
 }
 ```
 Then in templates: `{{ MS_TRANS.my_key }}`
@@ -554,3 +628,7 @@ microsys/
 | v1.5.0   | • **Global Dynamic Autofill Feature**: Automatically fill forms from related ForeignKeys (e.g. User Profile data) with smart clearing and toggle controls |
 | v1.5.1   | • Autofill fixes: Resolved 500/404 errors during clearing, refined toggle behavior, and standardized console logging |
 | v1.5.2  | • Completely Restructured README for a clearer understanding of the system and its setup |
+| v1.6.0  | • **Context Menu**: Added global, data-driven context menu support for interactive elements |
+| v1.6.1  | • **Translation Upgrade**: Improved translation system and coverage <br> • Various bug fixes and stability improvements |
+| v1.6.2  | • **Custom Password Form**: Refactored password change form with dynamic translations and helpful descriptions <br> • **RTL/LTR Fixes**: Fixed Login screen text direction in English mode <br> • **Profile Translations**: Fully translated profile view and edit pages |
+| v1.6.3  | • **Login Enhancements**: Added language switcher, session-based language persistence, and fixed RTL alignment bug <br> • **Smart Redirects**: Login now automatically redirects authenticated users and supports `home_url` config fallback <br> • **Unified Translations**: Refactored internal translation helper to support anonymous sessions |

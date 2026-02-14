@@ -94,21 +94,8 @@ class Profile(ScopedModel):
 
 
 class UserActivityLog(ScopedModel):
-    ACTION_TYPES = [
-        ('LOGIN', 'تسجيل دخـول'),
-        ('LOGOUT', 'تسجيل خـروج'),
-        ('CREATE', 'انشـاء'),
-        ('UPDATE', 'تعديـل'),
-        ('DELETE', 'حــذف'),
-        ('VIEW', 'عـرض'),
-        ('DOWNLOAD', 'تحميل'),
-        ('CONFIRM', 'تأكيـد'),
-        ('REJECT', 'رفــض'),
-        ('RESET', 'اعادة ضبط'),
-    ]
-
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, verbose_name="اسم المستخدم", null=True, blank=True)
-    action = models.CharField(max_length=10, choices=ACTION_TYPES, verbose_name="العملية")
+    action = models.CharField(max_length=50, verbose_name="العملية")
     model_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="القسم")
     object_id = models.IntegerField(blank=True, null=True, verbose_name="ID")
     number = models.CharField(max_length=50, null=True, blank=True, verbose_name="المستند")

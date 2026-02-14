@@ -3,17 +3,17 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block title %}الملف الشخصي{% endblock %}
+{% block title %}{{ MS_TRANS.profile }}{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
+<link rel="stylesheet" href="{% static 'microsys/users/css/profile.css' %}">
 
 
 <div class="row justify-content-center mt-4">
     <div class="col-lg-10">
         <div class="glass-profile">
             <h1 class="page-title text-center display-6">
-                <i class="bi bi-person-circle me-2"></i> الملف الشخصي
+                <i class="bi bi-person-circle me-2"></i> {{ MS_TRANS.profile }}
             </h1>
 
             <div class="row align-items-start">
@@ -30,33 +30,33 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <div class="info-label">اسم المستخدم</div>
+                                <div class="info-label">{{ MS_TRANS.tbl_username }}</div>
                                 <div class="info-value">{{ user.username }}</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <div class="info-label">البريد الإلكتروني</div>
+                                <div class="info-label">{{ MS_TRANS.tbl_email }}</div>
                                 <div class="info-value">{{ user.email }}</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <div class="info-label">الصلاحيات</div>
+                                <div class="info-label">{{ MS_TRANS.permissions }}</div>
                                 <div class="info-value">
                                     {% if user.is_superuser %}
-                                        مدير النظام
+                                        {{ MS_TRANS.role_superuser }}
                                     {% elif user.is_staff %}
-                                        مستخدم مسؤول
+                                        {{ MS_TRANS.role_staff }}
                                     {% else %}
-                                        مستخدم عادي
+                                        {{ MS_TRANS.role_user }}
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <div class="info-label">رقم الهاتف</div>
+                                <div class="info-label">{{ MS_TRANS.tbl_phone }}</div>
                                 <div class="info-value">{{ user.phone|default:"-" }}</div>
                             </div>
                         </div>
@@ -67,17 +67,17 @@
                         <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
                             <a class="btn btn-success action-btn rounded-pill" href="{% url 'edit_profile' %}">
                                 <i class="bi bi-pencil-square h5 m-0"></i> 
-                                <span>تحديث البيانات</span>
+                                <span>{{ MS_TRANS.btn_update_data }}</span>
                             </a>
                             
                             <button type="button" class="btn btn-danger action-btn rounded-pill" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
                                 <i class="bi bi-shield-lock h5 m-0"></i>
-                                <span>تغيير كلمة المـرور</span>
+                                <span>{{ MS_TRANS.btn_change_password }}</span>
                             </button>
                             
                             <a href="{{ APP_CONFIG.home_url }}" class="btn btn-secondary action rounded-pill">
                                 <i class="bi bi-house-door h5 m-0"></i>
-                                <span>الرئيسية</span>
+                                <span>{{ MS_TRANS.btn_home }}</span>
                             </a>
                         </div>
                     </div>
@@ -93,7 +93,7 @@
         <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
             <div class="modal-header bg-light border-0">
                 <h5 class="modal-title fw-bold text-primary" id="resetPasswordModalLabel">
-                    <i class="bi bi-key me-2"></i> تغيير كلمة المرور
+                    <i class="bi bi-key me-2"></i> {{ MS_TRANS.btn_change_password }}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -103,7 +103,7 @@
                     {{ password_form|crispy }}
                     <div class="d-grid mt-4">
                         <button type="submit" name="change_password" class="btn btn-danger action-btn rounded-pill justify-content-center">
-                            تأكيد تغيير كلمة المرور
+                            {{ MS_TRANS.btn_confirm_password_change }}
                         </button>
                     </div>
                 </form>

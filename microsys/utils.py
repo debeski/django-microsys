@@ -3,6 +3,7 @@ from django.utils.module_loading import import_string
 from django.forms import modelform_factory
 import django_tables2 as tables
 from django.http import JsonResponse
+import json
 # try-except for django_filters as it might not be installed (though likely is)
 try:
     import django_filters
@@ -13,6 +14,73 @@ from django.db.models import ManyToManyField, ManyToManyRel, Q
 from django.db import models as dj_models
 from decimal import Decimal, InvalidOperation
 import inspect
+from .translations import get_strings
+from django.conf import settings
+
+def _get_default_strings():
+    """Helper to get default global strings dict"""
+    ms_config = getattr(settings, 'MICROSYS_CONFIG', {})
+    lang = ms_config.get('default_language', 'ar')
+    overrides = ms_config.get('translations', None)
+    return get_strings(lang, overrides=overrides)
+
+
+def filter_context_actions(user, actions):
+    """
+    Filter a list of context menu actions based on user permissions.
+    Each action can have a 'permissions' key (list of strings) or 'permission' (string).
+    If user lacks any required permission, the action is excluded.
+    """
+    if not user or not user.is_authenticated:
+        return []
+
+    filtered = []
+    for action in actions:
+        # Check permissions
+        required_perms = action.get('permissions', [])
+        if not required_perms and 'permission' in action:
+            required_perms = [action['permission']]
+        
+        if required_perms:
+            if user.is_superuser:
+                # Superuser sees all
+                pass
+            elif not user.has_perms(required_perms):
+                continue
+        
+        filtered.append(action)
+    
+    return filtered
+
+
+def _get_request_translations(request):
+    """
+    Resolve the current user's language and return translation strings.
+    Resolution Order:
+    1. User Profile Preference (if authenticated)
+    2. Session 'lang' key (e.g. from login screen or manual switch)
+    3. Browser/Request Headers (future extension)
+    4. System Default (microsys config)
+    """
+    ms_config = getattr(settings, 'MICROSYS_CONFIG', {})
+    default_lang = ms_config.get('default_language', 'ar')
+    lang = None
+    
+    # 1. User Profile
+    if request.user.is_authenticated and hasattr(request.user, 'profile'):
+        user_prefs = request.user.profile.preferences or {}
+        lang = user_prefs.get('language')
+        
+    # 2. Session (Fallback for login screen or guests)
+    if not lang and hasattr(request, 'session'):
+        lang = request.session.get('lang')
+        
+    # 3. Default
+    if not lang:
+        lang = default_lang
+        
+    overrides = ms_config.get('translations', None)
+    return get_strings(lang, overrides=overrides)
 
 
 def _get_model_app_bases(model):
@@ -146,6 +214,56 @@ def resolve_form_class_for_model(model):
     return form_class
 
 
+def collect_related_objects(instance):
+    """
+    Introspects a model instance to find all related objects (Reverse FK, M2M).
+    Returns a dictionary: { 'Verbose Name Plural': ['Item 1', 'Item 2'] }
+    Used for Smart Delete functionality and Smart View.
+    """
+    related_data = {}
+    
+    # Iterate over all fields to find relations
+    for field in instance._meta.get_fields():
+        if field.auto_created and not field.concrete:
+            # Reverse Relations (OneToMany, OneToOne)
+            # e.g. department.affiliate_set
+            try:
+                accessor = field.get_accessor_name()
+                if not accessor: continue
+                
+                related_msg = getattr(instance, accessor, None)
+                if related_msg:
+                    # Check if it's a Manager (OneToMany) or single object (OneToOne)
+                    if hasattr(related_msg, 'all'):
+                        # Limit to reasonable amount
+                        qs = related_msg.all()[:20] 
+                        if qs:
+                            items = [str(obj) for obj in qs]
+                            name = field.related_model._meta.verbose_name_plural
+                            related_data[name] = items
+                    else:
+                        # OneToOne
+                        name = field.related_model._meta.verbose_name
+                        related_data[name] = [str(related_msg)]
+            except Exception:
+                pass
+                
+        elif field.many_to_many:
+            # Forward M2M
+            try:
+                manager = getattr(instance, field.name, None)
+                if manager:
+                    qs = manager.all()[:20]
+                    if qs:
+                        items = [str(obj) for obj in qs]
+                        name = field.related_model._meta.verbose_name_plural
+                        related_data[name] = items
+            except Exception:
+                pass
+                
+    return related_data
+
+
 def _build_generic_table_class(model):
     """
     Build a minimal django-tables2 Table for a model.
@@ -171,17 +289,66 @@ def _build_generic_table_class(model):
     meta_attrs = {
         "model": model,
         "template_name": "django_tables2/bootstrap5.html",
-        "attrs": {'class': 'table table-striped table-sm table align-middle section-table'},
+        "attrs": {'class': 'table table-hover align-middle'},
         "row_attrs": {
             'class': 'section-row',
             'data-pk': lambda record: record.pk,
             'data-name': lambda record: str(record),
+            
+            # Context Menu Injection
+            'data-micro-context': 'true',
         },
     }
+    def __init__(self, *args, translations=None, request=None, **kwargs):
+        model_name = kwargs.pop('model_name', None)
+        super(self.__class__, self).__init__(*args, **kwargs)
+        if model_name:
+            self.model_name = model_name
+        self.request = request
+        
+        s = translations or _get_default_strings()
+        
+        # Context Menu Helper
+        def get_actions(record):
+            actions = [
+                {
+                    "label": s.get('view_label', 'عرض المحتوى'), # View Details
+                    "icon": "bi bi-eye",
+                    "type": "event",
+                    "event": "micro:section:view", 
+                    "data": {"model": model._meta.model_name, "id": record.pk, "name": str(record)},
+                    "dblclick": True
+                },
+                {"type": "divider"},
+                {
+                    "label": s.get('edit_label', 'تعديل'), # Edit
+                    "icon": "bi bi-pencil",
+                    "url": f"?model={model._meta.model_name}&id={record.pk}",
+                    "type": "url",
+                    "permissions": [f"microsys.change_{model._meta.model_name}"]
+                },
+                {
+                    "label": s.get('delete_label', 'حذف'), # Delete
+                    "icon": "bi bi-trash",
+                    "type": "event",
+                    "event": "micro:section:delete", 
+                    "data": {"model": model._meta.model_name, "id": record.pk, "name": str(record)},
+                    "textClass": "text-danger",
+                    "permissions": [f"microsys.delete_{model._meta.model_name}"]
+                }
+            ]
+            
+            if self.request and self.request.user:
+                actions = filter_context_actions(self.request.user, actions)
+
+            return json.dumps(actions)
+        
+        self.row_attrs["data-micro-actions"] = get_actions
+
     if raw_exclude:
         meta_attrs["exclude"] = list(dict.fromkeys(raw_exclude))
     Meta = type("Meta", (), meta_attrs)
-    table_attrs = {"Meta": Meta}
+    table_attrs = {"Meta": Meta, "__init__": __init__}
     return type(f"{model.__name__}AutoTable", (tables.Table,), table_attrs)
 
 
@@ -697,7 +864,7 @@ def toggle_sidebar(request):
             prefs = dict(profile.preferences)
             prefs['sidebar_collapsed'] = collapsed
             profile.preferences = prefs
-            profile.save()
+            profile.save(update_fields=['preferences'])
 
         return JsonResponse({"status": "success"})
     return JsonResponse({"status": "error"}, status=400)

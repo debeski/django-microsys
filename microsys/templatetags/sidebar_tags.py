@@ -10,7 +10,7 @@ from django.urls import reverse, NoReverseMatch
 register = template.Library()
 
 
-@register.inclusion_tag('sidebar/auto.html', takes_context=True)
+@register.inclusion_tag('microsys/sidebar/auto.html', takes_context=True)
 def auto_sidebar(context):
     """
     Render auto-discovered sidebar items.
@@ -56,7 +56,7 @@ def sidebar_item_class(context, url_name):
     return ''
 
 
-@register.inclusion_tag('sidebar/extra_groups.html', takes_context=True)
+@register.inclusion_tag('microsys/sidebar/extra_groups.html', takes_context=True)
 def extra_sidebar(context):
     """
     Render extra sidebar items grouped in accordions.

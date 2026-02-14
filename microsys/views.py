@@ -29,7 +29,7 @@ from django.urls import reverse
 from django import forms
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models as dj_models
-from django.db.models import ManyToManyField, Count
+from django.db.models import ManyToManyField, Count, ProtectedError
 from django.db.models.functions import TruncHour
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -39,24 +39,15 @@ from crispy_forms.layout import Submit
 
 from .signals import get_client_ip
 from .tables import UserTable
-from .forms import CustomUserCreationForm, CustomUserChangeForm, ArabicPasswordChangeForm, ResetPasswordForm, UserProfileEditForm
+from .forms import CustomUserCreationForm, CustomUserChangeForm, CustomPasswordChangeForm, ResetPasswordForm, UserProfileEditForm
 from .filters import UserFilter
-from .utils import is_scope_enabled, discover_section_models, resolve_model_by_name, resolve_form_class_for_model, has_related_records
+from .utils import is_scope_enabled, discover_section_models, resolve_model_by_name, resolve_form_class_for_model, has_related_records, collect_related_objects, _get_request_translations
 from .translations import get_strings
 
 User = get_user_model() # Use custom user model
 
 
-def _get_request_translations(request):
-    """Resolve the current user's language and return translation strings."""
-    ms_config = getattr(settings, 'MICROSYS_CONFIG', {})
-    default_lang = ms_config.get('default_language', 'ar')
-    user_prefs = {}
-    if request.user.is_authenticated and hasattr(request.user, 'profile'):
-        user_prefs = request.user.profile.preferences or {}
-    lang = user_prefs.get('language', default_lang)
-    overrides = ms_config.get('translations', None)
-    return get_strings(lang, overrides=overrides)
+
 
 def _get_m2m_through_defaults(model, field_name, request):
     """
@@ -192,15 +183,58 @@ def dashboard(request):
             'last_24h': json.dumps({'labels': data_24h_labels, 'values': data_24h_values}),
         }
     }
-    return render(request, 'microsys/dashboard.html', context)
+    return render(request, 'microsys/includes/dashboard.html', context)
 
 # Custom Login View with Theme Injection
 class CustomLoginView(LoginView):
+    redirect_authenticated_user = True  # Automatically redirect logged-in users
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Inject theme configuration from settings
-        context['theme'] = getattr(settings, 'MICRO_USERS_THEME', {})
+        # 1. Check for manual language switch via GET param
+        lang_param = self.request.GET.get('lang')
+        
+        # Only set if provided (the helper will read it from session automatically)
+        if lang_param in ['ar', 'en']:
+            self.request.session['lang'] = lang_param
+            
+        # 2. Use the smart helper (now handles session automatically)
+        context['MS_TRANS'] = _get_request_translations(self.request)
+
         return context
+
+    def get_success_url(self):
+        """
+        Overwrite default redirect to use 'sys_dashboard' (or custom config home_url)
+        if no 'next' param is provided and LOGIN_REDIRECT_URL is the default.
+        """
+        # 1. Check for 'next' parameter (standard behavior)
+        url = self.get_redirect_url()
+        if url:
+            return url
+            
+        # 2. Check if project settings have a custom redirect URL
+        # The default Django value is '/accounts/profile/'
+        project_redirect = getattr(settings, 'LOGIN_REDIRECT_URL', '/accounts/profile/')
+        
+        if project_redirect == '/accounts/profile/':
+             # If it's the default, override it.
+             ms_config = getattr(settings, 'MICROSYS_CONFIG', {})
+             home_url = ms_config.get('home_url')
+             
+             if home_url:
+                 from django.shortcuts import resolve_url
+                 try:
+                     return resolve_url(home_url)
+                 except:
+                     return home_url
+
+             # Fallback to default dashboard
+             from django.urls import reverse_lazy
+             return reverse_lazy('sys_dashboard')
+        
+        # 3. Otherwise use the project setting
+        return super().get_success_url()
 
 
 # Function to recognize staff
@@ -243,6 +277,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTa
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
         kwargs['translations'] = _get_request_translations(self.request)
+        kwargs['request'] = self.request
         return kwargs
 
     def get_table(self, **kwargs):
@@ -269,6 +304,11 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, FilterView, SingleTa
             can_toggle_scope = not User.objects.filter(profile__scope__isnull=False).exists()
         
         context["can_toggle_scope"] = can_toggle_scope
+
+        # Add Reset Password Form for Modal (Dummy user to generate fields)
+        if self.request.user.is_authenticated:
+            context["form_reset"] = ResetPasswordForm(user=self.request.user)
+            
         return context
 
 
@@ -298,9 +338,8 @@ def create_user(request):
 @user_passes_test(is_staff)
 def edit_user(request, pk):
     user = get_object_or_404(User, pk=pk)
-    
-    # 🚫 Block staff users from editing superuser accounts
-    if user.is_superuser and not request.user.is_superuser:
+    # 🚫 Superusers can only be edited by THEMSELVES
+    if user.is_superuser and request.user != user:
         messages.error(request, "ليس لديك صلاحية لتعديل هذا الحساب!")
         return redirect('manage_users')
 
@@ -336,6 +375,11 @@ def edit_user(request, pk):
 def delete_user(request, pk):
     user = get_object_or_404(User, pk=pk)
 
+    # Prevent deletion of any superuser
+    if user.is_superuser:
+        messages.error(request, "لا يمكن حذف المشرف الرئيسي للنظام!")
+        return redirect('manage_users')
+
     # Restrict to same scope
     if not request.user.is_superuser:
         user_scope = user.profile.scope if hasattr(user, 'profile') else None
@@ -345,8 +389,12 @@ def delete_user(request, pk):
              return redirect('manage_users')
 
     if request.method == "POST":
+        # Capture original username for logging
+        original_username = user.username
+        
         # Soft delete the user
         user.is_active = False
+        user.skip_signal_logging = True # Prevent "UPDATE" log
         user.save()
         
         # Set deleted_at on profile
@@ -367,7 +415,22 @@ def delete_user(request, pk):
             counter += 1
         
         user.username = new_username
+        user.skip_signal_logging = True # Prevent "UPDATE" log for rename
         user.save()
+
+        # Manually Log the Delete Action with original username
+        UserActivityLog = apps.get_model('microsys', 'UserActivityLog')
+        UserActivityLog.objects.create(
+            user=request.user,
+            action="DELETE",
+            model_name="User", # Or user._meta.verbose_name
+            object_id=user.pk,
+            number=original_username, # Use original username here!
+            timestamp=timezone.now(),
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )
+
         return redirect("manage_users")
     return redirect("manage_users")  # Redirect instead of rendering a separate page
 
@@ -377,7 +440,7 @@ class UserActivityLogView(LoginRequiredMixin, UserPassesTestMixin, SingleTableMi
     model = apps.get_model('microsys', 'UserActivityLog')
     table_class = import_string('microsys.tables.UserActivityLogTable')
     filterset_class = import_string('microsys.filters.UserActivityLogFilter')
-    template_name = "microsys/user_activity_log.html"
+    template_name = "microsys/users/user_activity_log.html"
 
     def test_func(self):
         return self.request.user.is_staff  # Only staff can access logs
@@ -409,6 +472,7 @@ class UserActivityLogView(LoginRequiredMixin, UserPassesTestMixin, SingleTableMi
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
         kwargs['translations'] = _get_request_translations(self.request)
+        kwargs['request'] = self.request
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -447,8 +511,8 @@ class UserDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 def reset_password(request, pk):
     user = get_object_or_404(User, id=pk)
 
-    # Block staff users from resetting superuser passwords
-    if user.is_superuser and not request.user.is_superuser:
+    # 🚫 Superusers can only have their password reset by THEMSELVES
+    if user.is_superuser and request.user != user:
         messages.error(request, "ليس لديك صلاحية لتعديل هذا الحساب!")
         return redirect('manage_users')
 
@@ -520,7 +584,7 @@ def update_preferences(request):
 
             # 4. Save
             profile.preferences = prefs
-            profile.save()
+            profile.save(update_fields=['preferences'])
             request.session.modified = True
             
             logger.debug(f"Preferences updated for {request.user.username}: {prefs}")
@@ -537,18 +601,26 @@ def update_preferences(request):
 @login_required
 def user_profile(request):
     user = request.user
-    password_form = ArabicPasswordChangeForm(user)
+    
+    # Use dynamic form
+    password_form = CustomPasswordChangeForm(user)
+    
     if request.method == 'POST':
-        password_form = ArabicPasswordChangeForm(user, request.POST)
+        password_form = CustomPasswordChangeForm(user, request.POST)
         if password_form.is_valid():
             password_form.save()
             log_user_action(request, user, "UPDATE", "password")
             update_session_auth_hash(request, password_form.user)  # Prevent user from being logged out
-            messages.success(request, 'تم تغيير كلمة المرور بنجاح!')
+            
+            # Translated success message
+            s = _get_request_translations(request)
+            messages.success(request, s.get('msg_password_changed', 'Password changed successfully!'))
+            
             return redirect('user_profile')
         else:
             # Log form errors
-            messages.error(request, "هناك خطأ في البيانات المدخلة")
+            s = _get_request_translations(request)
+            messages.error(request, s.get('msg_form_error', "There was an error with the submitted data"))
             print(password_form.errors)
 
     return render(request, 'microsys/profile/profile.html', {
@@ -795,10 +867,11 @@ def core_models_view(request):
         accepts_model_name = False
 
     # Pass model_name to constructor if supported, otherwise inject it as an attribute
+    translations = _get_request_translations(request)
     if accepts_model_name:
-        table = TableClass(queryset, model_name=model_param)
+        table = TableClass(queryset, model_name=model_param, translations=translations, request=request)
     else:
-        table = TableClass(queryset)
+        table = TableClass(queryset, translations=translations, request=request)
         if not hasattr(table, "model_name"):
             table.model_name = model_param
     RequestConfig(request, paginate={'per_page': 10}).configure(table)
@@ -1253,23 +1326,40 @@ def delete_section(request):
         return JsonResponse({'success': False, 'error': 'العنصر غير موجود'}, status=404)
     
     # Check if has related records (protect from deletion)
-    if has_related_records(instance):
+    # Use generic helper to find WHAT is related
+    related_objects = collect_related_objects(instance)
+    
+    if related_objects:
         return JsonResponse({
             'success': False, 
-            'error': 'لا يمكن حذف هذا العنصر لارتباطه بسجلات أخرى.'
+            'error': 'لا يمكن حذف هذا العنصر لارتباطه بسجلات أخرى.',
+            'related': related_objects # Structured dict of blocking items
         }, status=200)
     
     name = str(instance)
-    instance.delete()
+    try:
+        instance.delete()
+    except ProtectedError as e:
+        # Fallback if collect_related_objects missed something
+        return JsonResponse({
+            'success': False, 
+            'error': 'لا يمكن حذف هذا العنصر لارتباطه بسجلات محمية أخرى (لم يتم اكتشافها تلقائياً).',
+            'details': str(e)
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': f'حدث خطأ أثناء الحذف: {str(e)}'
+        }, status=200)
     
     return JsonResponse({'success': True, 'message': f"تم حذف: {name}"})
 
 
 @login_required
-def get_section_subsections(request):
+def get_section_details(request):
     """
-    Get subsections for a section via AJAX.
-    Returns HTML for modal body.
+    Get section details and related objects via AJAX (Smart View).
+    Returns JSON with fields and related lists.
     """
     model_name = request.GET.get('model')
     pk = request.GET.get('pk')
@@ -1286,28 +1376,29 @@ def get_section_subsections(request):
     except model.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'العنصر غير موجود'}, status=404)
     
-    # Find M2M fields (subsections)
-    subsections_html = []
-    for field in model._meta.get_fields():
-        if isinstance(field, ManyToManyField):
-            child_model = field.related_model
-            rel_manager = getattr(instance, field.name, None)
-            if rel_manager:
-                items = list(rel_manager.all())
-                if items:
-                    subsections_html.append(f'<h6 class="mb-2">{field.related_model._meta.verbose_name_plural}</h6>')
-                    subsections_html.append('<ul class="list-group mb-3">')
-                    for item in items:
-                        subsections_html.append(f'<li class="list-group-item">{item}</li>')
-                    subsections_html.append('</ul>')
+    # 1. Collect Fields
+    fields_data = {}
+    exclude_fields = ['id', 'created_at', 'updated_at', 'scope', 'polymorphic_ctype', 'password']
     
-    if not subsections_html:
-        subsections_html = ['<p class="text-muted text-center">لا توجد أقسام فرعية مرتبطة</p>']
+    for field in model._meta.fields:
+        if field.name not in exclude_fields:
+            try:
+                val = getattr(instance, field.name)
+                # Handle choices
+                if hasattr(instance, f"get_{field.name}_display"):
+                     val = getattr(instance, f"get_{field.name}_display")()
+                fields_data[field.verbose_name] = str(val) if val is not None else ""
+            except:
+                pass
+
+    # 2. Collect Related Objects
+    related_objects = collect_related_objects(instance)
     
     return JsonResponse({
-        'success': True, 
-        'html': ''.join(subsections_html),
-        'title': f'الأقسام الفرعية لـ: {instance}'
+        'success': True,
+        'title': str(instance),
+        'fields': fields_data,
+        'related': related_objects
     })
 
 
@@ -1389,7 +1480,7 @@ def options_view(request):
         'disk_used': f"{disk_used_gb:.1f}",
         'disk_percent': disk_percent,
     }
-    return render(request, 'microsys/options.html', context)
+    return render(request, 'microsys/includes/options.html', context)
 @login_required
 def reset_preferences(request):
     """

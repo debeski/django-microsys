@@ -3,7 +3,6 @@
 <!-- Expects 'field', 'locked_ids', 'parent_model', 'child_model', 'add_url', 'edit_url_template', 'delete_url_template' -->
 
 <!-- Include CSS -->
-<link rel="stylesheet" href="{% static 'sections/css/context_menu.css' %}">
 
 <div class="d-flex align-items-center gap-2 mt-2 mb-1">
   <h6 class="mb-0">الأقسام الفرعية</h6>
@@ -27,6 +26,8 @@
                    style="cursor: not-allowed; font-size: 1.1rem;"
                    data-sub-id="{{ checkbox.data.value }}"
                    data-sub-name="{{ checkbox.choice_label }}"
+                   data-micro-context="true"
+                   data-micro-actions='[{"label": "{{ MS_TRANS.edit_label|default:"تعديل" }}", "icon": "bi bi-pencil", "type": "event", "event": "micro:subsection:edit"}, {"type": "divider"}, {"label": "{{ MS_TRANS.delete_label|default:"حذف" }}", "icon": "bi bi-trash", "textClass": "text-danger", "type": "event", "event": "micro:subsection:delete", "disabled": true}]'
                    data-locked="true">
               {{ checkbox.choice_label }} <i class="bi bi-lock-fill small ms-1"></i>
             </label>
@@ -45,6 +46,8 @@
                style="font-size: 1.1rem;"
                data-sub-id="{{ checkbox.data.value }}"
                data-sub-name="{{ checkbox.choice_label }}"
+               data-micro-context="true"
+               data-micro-actions='[{"label": "{{ MS_TRANS.edit_label|default:"تعديل" }}", "icon": "bi bi-pencil", "type": "event", "event": "micro:subsection:edit"}, {"type": "divider"}, {"label": "{{ MS_TRANS.delete_label|default:"حذف" }}", "icon": "bi bi-trash", "textClass": "text-danger", "type": "event", "event": "micro:subsection:delete"}]'
                data-locked="false">
           {{ checkbox.choice_label }}
         </label>
@@ -69,23 +72,13 @@
   </button>
 </div>
 
-<!-- Context Menu -->
-<div id="subsectionContextMenu" class="context-menu">
-    <button type="button" class="context-menu-item" data-action="edit">
-        <i class="bi bi-pencil"></i> تعديل
-    </button>
-    <div class="context-menu-divider"></div>
-    <button type="button" class="context-menu-item text-danger" data-action="delete">
-        <i class="bi bi-trash"></i> حذف
-    </button>
-</div>
 
 <!-- Delete Form (hidden, used by JS) -->
 
 
 <!-- Include JS -->
-<script src="{% static 'sections/js/context_menu.js' %}"></script>
-<script>
+<!-- Include Micro Context Menu -->
+<script nonce="{{ request.csp_nonce }}">
   (function() {
     if (!window.bootstrap || !window.bootstrap.Tooltip) return;
     document.querySelectorAll('.subsection-help[data-bs-toggle="tooltip"]').forEach(function(el) {

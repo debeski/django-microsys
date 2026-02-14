@@ -1,9 +1,8 @@
 {% extends 'microsys/base.html' %}
 {% load static %}
 {% block title %}{{ MS_TRANS.login }}{% endblock %}
-
-{% block content %}
-<link rel="stylesheet" href="{% static 'users/css/login.css' %}">
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'microsys/users/css/login.css' %}">
 {% if theme %}
 <style>
   :root {
@@ -24,18 +23,34 @@
   }
 </style>
 {% endif %}
+{% endblock %}
+{% block titlebar %}{% endblock %}
 
+{% block layout %}
 <div class="page">
+    {% if messages %}
+        <div class="alert-container position-absolute top-0 start-0 w-100" style="z-index: 2000;">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} text-center h4" style="opacity: 95%;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <div class="container">
       <div class="left">
-        <div class="text-center mb-4 d-md-none">
-            <img src="{% static 'img/login_logo.webp' %}" alt="Login Logo" class="logo-img">
+        <div class="d-flex flex-column align-items-center mb-4 d-md-none">
+            <div class="logo-frame">
+                <img src="{% static 'img/login_logo.webp' %}" alt="Login Logo" class="logo-img">
+            </div>
         </div>
         <form action="{% url 'login' %}" method="POST" class="w-100">
             {% csrf_token %}
             {% if next %}
                 <input type="hidden" name="next" value="{{ next }}">
             {% endif %}
+
             <div class="form m-0 mx-auto">
                 <div class="mb-4">
                     <label for="username">{{ MS_TRANS.username }}</label>
@@ -47,16 +62,35 @@
                     <input type="password" class="login-input" id="password" name="password" required>
                 </div>
         
-                <button type="submit" class="w-100 btn btn-lg mt-3" id="submit">{{ MS_TRANS.login_submit }}</button>
+                <button type="submit" class="w-100 btn btn-lg mt-4" id="submit">{{ MS_TRANS.login_submit }}</button>
+                
+                <!-- Mobile Language Toggle (Below Button) -->
+                <div class="d-flex justify-content-center mt-4 d-md-none">
+                    <div class="lang-toggle-container">
+                        <a href="?lang=en" class="lang-option {% if request.session.lang == 'en' %}active{% endif %}">EN</a>
+                        <a href="?lang=ar" class="lang-option {% if not request.session.lang or request.session.lang == 'ar' %}active{% endif %}">ع</a>
+                    </div>
+                </div>
             </div>
         </form>
       </div>
       
+      <!-- Removed position-relative to preserve absolute positioning defined in CSS -->
       <div class="right d-none d-md-flex">
-          <img src="{% static 'img/login_logo.webp' %}" alt="Login Logo" class="logo-img">
+          <!-- Desktop Language Toggle -->
+          <div class="lang-toggle-container desktop-lang-toggle">
+                <a href="?lang=en" class="lang-option {% if request.session.lang == 'en' %}active{% endif %}">EN</a>
+                <a href="?lang=ar" class="lang-option {% if not request.session.lang or request.session.lang == 'ar' %}active{% endif %}">ع</a>
+          </div>
+
+          <div class="logo-frame">
+            <img src="{% static 'img/login_logo.webp' %}" alt="Login Logo" class="logo-img">
+          </div>
       </div>
     </div>
-  </div>
+</div>
+{% endblock %}
 
-<script src="{% static 'users/js/login.js' %}" nonce="{{ request.csp_nonce }}"></script>
+{% block scripts %}
+<script src="{% static 'microsys/users/js/login.js' %}" nonce="{{ request.csp_nonce }}"></script>
 {% endblock %}

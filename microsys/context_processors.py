@@ -123,9 +123,21 @@ def microsys_context(request):
     }
     languages = final_config.get('languages', default_languages)
 
-    # Resolve active language: user pref → config default → 'ar'
+    # Resolve active language: user pref → session → config default → 'ar'
     default_lang = final_config.get('default_language', 'ar')
-    current_lang = user_prefs.get('language', default_lang)
+    
+    current_lang = None
+    # 1. User Preference
+    if user_prefs and 'language' in user_prefs:
+        current_lang = user_prefs.get('language')
+    
+    # 2. Session Preference (for anonymous users or overrides)
+    if not current_lang:
+        current_lang = request.session.get('lang')
+        
+    # 3. Default
+    if not current_lang:
+        current_lang = default_lang
 
     # Validate the resolved language exists in available languages
     if current_lang not in languages:
