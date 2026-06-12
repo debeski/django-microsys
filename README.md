@@ -1,5 +1,22 @@
 # Django microSYS - System Integration Service
 
+> [!IMPORTANT]
+> ## ⚠️ Renamed & no longer maintained here — continued as **django-lux**
+>
+> `django-microsys` has been rebranded and now lives on as
+> **[`django-lux`](https://github.com/debeski/django-lux)**. This repository is
+> **archived for historical reference** and will receive no further updates; all
+> development continues under the new name.
+>
+> - **New package:** `pip install django-lux` — [PyPI](https://pypi.org/project/django-lux/)
+> - **New repository:** <https://github.com/debeski/django-lux>
+> - **Already running `django-microsys`?** Upgrade an existing deployment in place
+>   with the [migration guide](https://github.com/debeski/django-lux/blob/main/docs/migrating-from-microsys.md)
+>   (`pip install django-lux` → `python manage.py dlux_migrate_from_microsys`).
+>
+> The final `django-microsys` release is **2.4.1**; `django-lux` **1.0.0** is
+> feature-equivalent (the framework is unchanged — only the name).
+
 [![PyPI version](https://badge.fury.io/py/django-microsys.svg)](https://pypi.org/project/django-microsys/)
 
 <p align="center">

@@ -1,5 +1,11 @@
 # microSYS Documentation
 
+> [!IMPORTANT]
+> **`django-microsys` is archived and continues as [`django-lux`](https://github.com/debeski/django-lux)
+> (`pip install django-lux`).** This documentation describes the final
+> `django-microsys` 2.4.1 release. To upgrade an existing deployment, see the
+> [migration guide](https://github.com/debeski/django-lux/blob/main/docs/migrating-from-microsys.md).
+
 microSYS now uses a layered documentation structure:
 
 - `README.md` is the package landing page.
